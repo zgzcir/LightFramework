@@ -1,13 +1,10 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
-using System.Security.AccessControl;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Xml.Serialization;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.PlayerLoop;
 
 public class ResourceTest : MonoBehaviour
 {
@@ -15,8 +12,10 @@ public class ResourceTest : MonoBehaviour
 
     void Start()
     {
-       SerializeTest();
-      DeserializeTest();
+        SerializeTest();
+        DeserializeTest();
+        BinarySerializeTest();
+        BinaryDeserializeTest();
     }
 
     private void Load()
@@ -37,28 +36,67 @@ public class ResourceTest : MonoBehaviour
         XmlDeserialize();
     }
 
-void    DeserializeTest()
+    void DeserializeTest()
     {
-        print(XmlDeserialize().Id+";"+XmlDeserialize().Name+";List->"+XmlDeserialize().List.Capacity);
+        print(XmlDeserialize().Id + ";" + XmlDeserialize().Name + ";List->" + XmlDeserialize().List.Count);
     }
+
+    private void BinarySerializeTest()
+    {
+        BinarySerialize(new TestSerialize()
+        {
+            Id = 2,
+            Name = "binaryTest",
+            List = new List<int> {1, 2, 3}
+        });
+    }
+
+    private void BinaryDeserializeTest()
+    {
+        TestSerialize ts = BinaryDeserialize();
+        print(ts.Id + ";" + ts.Name + ";List->" + ts.List.Count);
+    }
+
     private void XmlSerialize(TestSerialize ts)
     {
-        FileStream fs = new FileStream(Application.dataPath + "/test.xml", FileMode.Create, FileAccess.ReadWrite,
+        FileStream fs = new FileStream(Application.dataPath + "/testXML.xml", FileMode.Create, FileAccess.ReadWrite,
             FileShare.ReadWrite);
         StreamWriter sw = new StreamWriter(fs, Encoding.UTF8);
-        
+
         XmlSerializer xml = new XmlSerializer(ts.GetType());
         xml.Serialize(sw, ts);
         sw.Close();
         fs.Close();
+        AssetDatabase.Refresh();
     }
 
     private TestSerialize XmlDeserialize()
     {
-        FileStream fs=new FileStream(Application.dataPath+"/test.xml",FileMode.Open,FileAccess.ReadWrite,FileShare.ReadWrite);
-        XmlSerializer xml=new XmlSerializer(typeof(TestSerialize));
-        TestSerialize ts =(TestSerialize)xml.Deserialize(fs);
+        FileStream fs = new FileStream(Application.dataPath + "/testXML.xml", FileMode.Open, FileAccess.ReadWrite,
+            FileShare.ReadWrite);
+        XmlSerializer xml = new XmlSerializer(typeof(TestSerialize));
+        TestSerialize ts = (TestSerialize) xml.Deserialize(fs);
         fs.Close();
+        return ts;
+    }
+
+    private void BinarySerialize(TestSerialize ts)
+    {
+        FileStream fs = new FileStream(Application.dataPath + "/testBytes.bytes", FileMode.Create, FileAccess.ReadWrite,
+            FileShare.ReadWrite);
+        BinaryFormatter bf = new BinaryFormatter();
+        bf.Serialize(fs, ts);
+        fs.Close();
+        AssetDatabase.Refresh();
+    }
+
+    private TestSerialize BinaryDeserialize()
+    {
+        TextAsset ta = AssetDatabase.LoadAssetAtPath<TextAsset>("Assets/testBytes.bytes");
+        MemoryStream ms = new MemoryStream(ta.bytes);
+        BinaryFormatter bf = new BinaryFormatter();
+        TestSerialize ts = (TestSerialize) bf.Deserialize(ms);
+        ms.Close();
         return ts;
     }
 }
