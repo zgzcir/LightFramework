@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEditor;
+
 public class BundleEditor
 {
     [MenuItem("Tools/打包")]
@@ -10,5 +11,4 @@ public class BundleEditor
         AssetDatabase.Refresh();
         Debug.Log("Build AssetBundle Done");
     }
-
 }
