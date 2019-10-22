@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Security.AccessControl;
 using System.Text;
 using System.Xml.Serialization;
 using UnityEditor;
@@ -15,6 +16,7 @@ public class ResourceTest : MonoBehaviour
     void Start()
     {
        SerializeTest();
+      DeserializeTest();
     }
 
     private void Load()
@@ -32,17 +34,31 @@ public class ResourceTest : MonoBehaviour
             Name = "test",
             List = new List<int> {1, 2, 3}
         });
+        XmlDeserialize();
     }
 
+void    DeserializeTest()
+    {
+        print(XmlDeserialize().Id+";"+XmlDeserialize().Name+";List->"+XmlDeserialize().List.Capacity);
+    }
     private void XmlSerialize(TestSerialize ts)
     {
         FileStream fs = new FileStream(Application.dataPath + "/test.xml", FileMode.Create, FileAccess.ReadWrite,
             FileShare.ReadWrite);
         StreamWriter sw = new StreamWriter(fs, Encoding.UTF8);
-
+        
         XmlSerializer xml = new XmlSerializer(ts.GetType());
         xml.Serialize(sw, ts);
         sw.Close();
         fs.Close();
+    }
+
+    private TestSerialize XmlDeserialize()
+    {
+        FileStream fs=new FileStream(Application.dataPath+"/test.xml",FileMode.Open,FileAccess.ReadWrite,FileShare.ReadWrite);
+        XmlSerializer xml=new XmlSerializer(typeof(TestSerialize));
+        TestSerialize ts =(TestSerialize)xml.Deserialize(fs);
+        fs.Close();
+        return ts;
     }
 }
