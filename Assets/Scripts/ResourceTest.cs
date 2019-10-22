@@ -12,10 +12,11 @@ public class ResourceTest : MonoBehaviour
 
     void Start()
     {
-        SerializeTest();
-        DeserializeTest();
-        BinarySerializeTest();
-        BinaryDeserializeTest();
+//        SerializeTest();
+//        DeserializeTest();
+//        BinarySerializeTest();
+//        BinaryDeserializeTest();
+        ReadTestAssets();
     }
 
     private void Load()
@@ -55,6 +56,13 @@ public class ResourceTest : MonoBehaviour
     {
         TestSerialize ts = BinaryDeserialize();
         print(ts.Id + ";" + ts.Name + ";List->" + ts.List.Count);
+    }
+
+    private void ReadTestAssets()
+    {
+        AssetsSerialize assetsSerialize = AssetDatabase.LoadAssetAtPath<AssetsSerialize>("Assets/testAssets.asset");
+        print(assetsSerialize.Id + ";" + assetsSerialize.Name + ";List->" + assetsSerialize.List.Count);
+
     }
 
     private void XmlSerialize(TestSerialize ts)
