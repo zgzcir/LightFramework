@@ -268,7 +268,7 @@ public class BundleEditor
         xmlSerializer.Serialize(fs, asseBundleConfig);
         fs.Close();
 
-
+        asseBundleConfig.ABList.ForEach(aBBase => { aBBase.Path = "";});
         if (File.Exists(PathDefine.BytesPath)) File.Delete(PathDefine.BytesPath);
         FileStream fs2 = new FileStream(PathDefine.BytesPath, FileMode.Create, FileAccess.ReadWrite,
             FileShare.ReadWrite);
@@ -294,5 +294,5 @@ public class PathDefine
     public static readonly string ABBuildConfig = "Assets/Editor/ABConfig.asset";
     public static readonly string BundleTargetPath = Application.streamingAssetsPath;
     public static readonly string XmlPath = Application.dataPath + "/AssetBundleConfig.xml";
-    public static readonly string BytesPath = BundleTargetPath + "AssetBundleConfig.bytes";
+    public static readonly string BytesPath = BundleTargetPath + "/AssetBundleConfig.bytes";
 }
