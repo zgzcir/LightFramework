@@ -1,6 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Runtime.Serialization.Formatters.Binary;
+using System.Text;
+using System.Xml.Serialization;
 using UnityEngine;
 using UnityEditor;
 
@@ -20,8 +24,8 @@ public class BundleEditor
         filterFilesPath.Clear();
         filesABDic.Clear();
 
-        ABConfig abConfig = AssetDatabase.LoadAssetAtPath<ABConfig>(PathDefine.ABConfig);
-        abConfig.allFileDirAB.ForEach(dir =>
+        ABBuildConfig abBuildConfig = AssetDatabase.LoadAssetAtPath<ABBuildConfig>(PathDefine.ABBuildConfig);
+        abBuildConfig.allFileDirAB.ForEach(dir =>
         {
             if (fileDirsABDic.ContainsKey(dir.abName))
             {
@@ -35,7 +39,7 @@ public class BundleEditor
         });
 
 
-        string[] allStr = AssetDatabase.FindAssets("t:Prefab", abConfig.allPrefabPath.ToArray());
+        string[] allStr = AssetDatabase.FindAssets("t:Prefab", abBuildConfig.allPrefabPath.ToArray());
         for (int i = 0; i < allStr.Length; i++)
         {
             string path = AssetDatabase.GUIDToAssetPath(allStr[i]);
@@ -52,6 +56,7 @@ public class BundleEditor
                     if (!IsContainAllFileAB(dependPath) && !dependPath.EndsWith(".cs")) ;
                     {
                         filterFilesPath.Add(dependPath);
+
                         allDependicesPath.Add(dependPath);
                     }
                 }
@@ -64,7 +69,6 @@ public class BundleEditor
                 {
                     filesABDic.Add(go.name, allDependicesPath);
                 }
-
             }
         }
 
@@ -79,17 +83,17 @@ public class BundleEditor
         }
 
         ClearInvalidAB();
-        
+
         BuildAssetsBundle();
-    
+
         ClearABName();
-    
+
 
         AssetDatabase.Refresh();
         EditorUtility.ClearProgressBar();
     }
 
-    
+
     private static void SetABName(string name, List<string> pathes)
     {
         pathes.ForEach(p =>
@@ -108,7 +112,6 @@ public class BundleEditor
 
     private static void ClearABName()
     {
-            
         string[] assetBundleNames = AssetDatabase.GetAllAssetBundleNames();
         for (int i = 0; i < assetBundleNames.Length; i++)
         {
@@ -137,7 +140,7 @@ public class BundleEditor
 
         string[] allBundles = AssetDatabase.GetAllAssetBundleNames();
         //path name
-        Dictionary<string, string> resPathDic = new Dictionary<string, string>();
+        Dictionary<string, string> assetPathDic = new Dictionary<string, string>();
         for (int i = 0; i < allBundles.Length; i++)
         {
             var bundleName = allBundles[i];
@@ -150,14 +153,16 @@ public class BundleEditor
                     continue;
                 }
 
-                resPathDic.Add(assetPath, bundleName);
+                assetPathDic.Add(assetPath, bundleName);
             }
         }
 
-        foreach (var VARIABLE in resPathDic)
+        foreach (var VARIABLE in assetPathDic)
         {
             Debug.Log(VARIABLE.Key + ":  " + VARIABLE.Value);
         }
+
+        WriteData(assetPathDic);
 
         #endregion
 
@@ -173,10 +178,12 @@ public class BundleEditor
         for (int i = 0; i < fileInfos.Length; i++)
         {
             var file = fileInfos[i];
-            if (IsContainABName(file.Name, allbundelsName) || file.Name.EndsWith(".meta"))
+//            if (IsContainABName(file.Name, allbundelsName) || file.Name.EndsWith(".meta"))
+            if (IsContainABName(file.Name, allbundelsName))
             {
                 continue;
             }
+
             Debug.Log("此AB包已无效：" + file.Name);
             if (File.Exists(file.FullName))
             {
@@ -211,11 +218,61 @@ public class BundleEditor
 
         return false;
     }
+
+    private static void WriteData(Dictionary<string, string> assetPathDic)
+    {
+        AsseBundleConfig asseBundleConfig = new AsseBundleConfig();
+        asseBundleConfig.ABList = new List<ABBase>();
+        foreach (var item in assetPathDic)
+        {
+            ABBase aBBase = new ABBase()
+            {
+                Path = item.Key,
+                Crc = CRC32.GetCRC32(item.Key),
+                ABName = item.Value,
+                AssetName = item.Key.Remove(0, item.Key.LastIndexOf('/') + 1)
+            };
+            string[] assetDependices = AssetDatabase.GetDependencies(aBBase.Path);
+            for (int i = 0; i < assetDependices.Length; i++)
+            {
+                string path = assetDependices[i];
+                if (path == aBBase.Path || path.EndsWith(".cs"))
+                    continue;
+                string aBName = "";
+                if (assetPathDic.TryGetValue(path, out aBName))
+                {
+                    if (aBName == assetPathDic[path]) continue;
+                    if (!aBBase.AssetDependentBundles.Contains(aBName))
+                    {
+                        aBBase.AssetDependentBundles.Add(aBName);
+                    }
+                }
+            }
+
+            asseBundleConfig.ABList.Add(aBBase);
+        }
+
+        if (File.Exists(PathDefine.XmlPath)) File.Delete(PathDefine.XmlPath);
+        FileStream fs = new FileStream(PathDefine.XmlPath, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite);
+        XmlSerializer xmlSerializer = new XmlSerializer(typeof(AsseBundleConfig));
+        xmlSerializer.Serialize(fs, asseBundleConfig);
+        fs.Close();
+
+
+        if (File.Exists(PathDefine.BytesPath)) File.Delete(PathDefine.BytesPath);
+        FileStream fs2 = new FileStream(PathDefine.BytesPath, FileMode.Create, FileAccess.ReadWrite,
+            FileShare.ReadWrite);
+        BinaryFormatter bf = new BinaryFormatter();
+        bf.Serialize(fs2, asseBundleConfig);
+        fs2.Close();
+    }
 }
 
 
 public class PathDefine
 {
-    public static readonly string ABConfig = "Assets/Editor/ABConfig.asset";
+    public static readonly string ABBuildConfig = "Assets/Editor/ABConfig.asset";
     public static readonly string BundleTargetPath = Application.streamingAssetsPath;
+    public static readonly string XmlPath = Application.dataPath + "/AssetBundleConfig.xml";
+    public static readonly string BytesPath = BundleTargetPath + "AssetBundleConfig.bytes";
 }
