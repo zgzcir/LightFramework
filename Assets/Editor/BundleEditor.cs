@@ -11,41 +11,45 @@ using UnityEditor;
 public class BundleEditor
 {
     //name path
-    public static Dictionary<string, string> fileDirsABDic = new Dictionary<string, string>();
+    private static Dictionary<string, string> m_fileDirsABDic = new Dictionary<string, string>();
 
-    public static List<string> filterFilesPath = new List<string>();
+    private static List<string> m_filterFilesPath = new List<string>();
 
-    public static Dictionary<string, List<string>> filesABDic = new Dictionary<string, List<string>>();
+    private static Dictionary<string, List<string>> m_filesABDic = new Dictionary<string, List<string>>();
+
+    private static List<string> m_filterVaildConfigs = new List<string>();
 
     [MenuItem("Tools/打包")]
     public static void Build()
     {
-        fileDirsABDic.Clear();
-        filterFilesPath.Clear();
-        filesABDic.Clear();
+        m_filterVaildConfigs.Clear();
+        m_fileDirsABDic.Clear();
+        m_filterFilesPath.Clear();
+        m_filesABDic.Clear();
 
         ABBuildConfig abBuildConfig = AssetDatabase.LoadAssetAtPath<ABBuildConfig>(PathDefine.ABBuildConfig);
         abBuildConfig.allFileDirAB.ForEach(dir =>
         {
-            if (fileDirsABDic.ContainsKey(dir.abName))
+            if (m_fileDirsABDic.ContainsKey(dir.abName))
             {
-                Debug.LogError("AB配置名字重复,请检查");
+                Debug.LogError("AB包配置名字重复,请检查");
             }
             else
             {
-                fileDirsABDic.Add(dir.abName, dir.path);
-                filterFilesPath.Add(dir.path);
+                m_fileDirsABDic.Add(dir.abName, dir.path);
+
+                m_filterFilesPath.Add(dir.path);
+                m_filterVaildConfigs.Add(dir.path);
             }
         });
-
 
         string[] allStr = AssetDatabase.FindAssets("t:Prefab", abBuildConfig.allPrefabPath.ToArray());
         for (int i = 0; i < allStr.Length; i++)
         {
             string path = AssetDatabase.GUIDToAssetPath(allStr[i]);
             EditorUtility.DisplayProgressBar("查找prefab", "Prefab:" + path, i * 1.0f / allStr.Length);
-
-            if (!IsContainAllFileAB(path))
+            m_filterVaildConfigs.Add(path);
+            if (!IsContainFileDirAB(path))
             {
                 GameObject go = AssetDatabase.LoadAssetAtPath<GameObject>(path);
                 string[] allDependices = AssetDatabase.GetDependencies(path);
@@ -53,31 +57,30 @@ public class BundleEditor
                 for (int j = 0; j < allDependices.Length; j++)
                 {
                     var dependPath = allDependices[j];
-                    if (!IsContainAllFileAB(dependPath) && !dependPath.EndsWith(".cs")) ;
+                    if (!IsContainFileDirAB(dependPath) && !dependPath.EndsWith(".cs"))
                     {
-                        filterFilesPath.Add(dependPath);
-
+                        m_filterFilesPath.Add(dependPath);
                         allDependicesPath.Add(dependPath);
                     }
                 }
 
-                if (filesABDic.ContainsKey(go.name))
+                if (m_filesABDic.ContainsKey(go.name))
                 {
                     Debug.LogError("存在相同名字Prefab:" + go.name);
                 }
                 else
                 {
-                    filesABDic.Add(go.name, allDependicesPath);
+                    m_filesABDic.Add(go.name, allDependicesPath);
                 }
             }
         }
 
-        foreach (var item in fileDirsABDic)
+        foreach (var item in m_fileDirsABDic)
         {
             SetABName(item.Key, item.Value);
         }
 
-        foreach (var item in filesABDic)
+        foreach (var item in m_filesABDic)
         {
             SetABName(item.Key, item.Value);
         }
@@ -153,7 +156,10 @@ public class BundleEditor
                     continue;
                 }
 
-                assetPathDic.Add(assetPath, bundleName);
+                if (IsValidPath(assetPath))
+                {
+                    assetPathDic.Add(assetPath, bundleName);
+                }
             }
         }
 
@@ -206,11 +212,11 @@ public class BundleEditor
     }
 
     //文件夹 其他依赖
-    private static bool IsContainAllFileAB(string path)
+    private static bool IsContainFileDirAB(string path)
     {
-        for (int i = 0; i < filterFilesPath.Count; i++)
+        for (int i = 0; i < m_filterFilesPath.Count; i++)
         {
-            if (path == filterFilesPath[i] || path.Contains(filterFilesPath[i]))
+            if (path == m_filterFilesPath[i] || path.Contains(m_filterFilesPath[i]))
             {
                 return true;
             }
@@ -230,7 +236,8 @@ public class BundleEditor
                 Path = item.Key,
                 Crc = CRC32.GetCRC32(item.Key),
                 ABName = item.Value,
-                AssetName = item.Key.Remove(0, item.Key.LastIndexOf('/') + 1)
+                AssetName = item.Key.Remove(0, item.Key.LastIndexOf('/') + 1),
+                AssetDependentBundles = new List<string>()
             };
             string[] assetDependices = AssetDatabase.GetDependencies(aBBase.Path);
             for (int i = 0; i < assetDependices.Length; i++)
@@ -238,10 +245,13 @@ public class BundleEditor
                 string path = assetDependices[i];
                 if (path == aBBase.Path || path.EndsWith(".cs"))
                     continue;
-                string aBName = "";
+                string aBName;
                 if (assetPathDic.TryGetValue(path, out aBName))
                 {
-                    if (aBName == assetPathDic[path]) continue;
+                    if (aBName.Equals(item.Value))
+                    {
+                        continue;
+                    }
                     if (!aBBase.AssetDependentBundles.Contains(aBName))
                     {
                         aBBase.AssetDependentBundles.Add(aBName);
@@ -265,6 +275,16 @@ public class BundleEditor
         BinaryFormatter bf = new BinaryFormatter();
         bf.Serialize(fs2, asseBundleConfig);
         fs2.Close();
+    }
+
+    private static bool IsValidPath(string path)
+    {
+        for (int i = 0; i < m_filterVaildConfigs.Count; i++)
+        {
+            if (path.Contains(m_filterVaildConfigs[i])) return true;
+        }
+
+        return false;
     }
 }
 
