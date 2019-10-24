@@ -8,35 +8,35 @@ using UnityEditor;
 public class BundleEditor
 {
     //name path
-    private static Dictionary<string, string> m_fileDirsABDic = new Dictionary<string, string>();
+    private static Dictionary<string, string> fileDirsABDic = new Dictionary<string, string>();
 
-    private static List<string> m_filterFilesPath = new List<string>();
+    private static List<string> filterFilesPath = new List<string>();
 
-    private static Dictionary<string, List<string>> m_filesABDic = new Dictionary<string, List<string>>();
+    private static Dictionary<string, List<string>> filesABDic = new Dictionary<string, List<string>>();
 
-    private static List<string> m_filterVaildConfigs = new List<string>();
+    private static List<string> filterVaildConfigs = new List<string>();
 
     [MenuItem("Tools/打包")]
     public static void Build()
     {
-        m_filterVaildConfigs.Clear();
-        m_fileDirsABDic.Clear();
-        m_filterFilesPath.Clear();
-        m_filesABDic.Clear();
+        filterVaildConfigs.Clear();
+        fileDirsABDic.Clear();
+        filterFilesPath.Clear();
+        filesABDic.Clear();
 
         ABBuildConfig abBuildConfig = AssetDatabase.LoadAssetAtPath<ABBuildConfig>(PathDefine.ABBuildConfig);
         abBuildConfig.allFileDirAB.ForEach(dir =>
         {
-            if (m_fileDirsABDic.ContainsKey(dir.aBName))
+            if (fileDirsABDic.ContainsKey(dir.aBName))
             {
                 Debug.LogError("AB包配置名字重复,请检查");
             }
             else
             {
-                m_fileDirsABDic.Add(dir.aBName, dir.path);
+                fileDirsABDic.Add(dir.aBName, dir.path);
 
-                m_filterFilesPath.Add(dir.path);
-                m_filterVaildConfigs.Add(dir.path);
+                filterFilesPath.Add(dir.path);
+                filterVaildConfigs.Add(dir.path);
             }
         });
 
@@ -45,7 +45,7 @@ public class BundleEditor
         {
             string path = AssetDatabase.GUIDToAssetPath(allStr[i]);
             EditorUtility.DisplayProgressBar("查找prefab", "Prefab:" + path, i * 1.0f / allStr.Length);
-            m_filterVaildConfigs.Add(path);
+            filterVaildConfigs.Add(path);
             if (!IsContainInFileDirAB(path))
             {
                 GameObject go = AssetDatabase.LoadAssetAtPath<GameObject>(path);
@@ -56,18 +56,18 @@ public class BundleEditor
                     var dependPath = allDependices[j];
                     if (!IsContainInFileDirAB(dependPath) && !dependPath.EndsWith(".cs"))
                     {
-                        m_filterFilesPath.Add(dependPath);
+                        filterFilesPath.Add(dependPath);
                         allDependicesPath.Add(dependPath);
                     }
                 }
 
-                if (m_filesABDic.ContainsKey(go.name))
+                if (filesABDic.ContainsKey(go.name))
                 {
                     Debug.LogError("存在相同名字Prefab:" + go.name);
                 }
                 else
                 {
-                    m_filesABDic.Add(go.name, allDependicesPath);
+                    filesABDic.Add(go.name, allDependicesPath);
                 }
             }
         }
@@ -78,17 +78,17 @@ public class BundleEditor
         {
             File.Delete(PathDefine.BytesFullPath);
         }
-        File.Create(PathDefine.BytesFullPath);
+        File.Create(PathDefine.BytesFullPath).Close();
         
         #endregion
 
 
-        foreach (var item in m_fileDirsABDic)
+        foreach (var item in fileDirsABDic)
         {
             SetABName(item.Key, item.Value);
         }
 
-        foreach (var item in m_filesABDic)
+        foreach (var item in filesABDic)
         {
             SetABName(item.Key, item.Value);
         }
@@ -196,8 +196,8 @@ public class BundleEditor
         for (int i = 0; i < fileInfos.Length; i++)
         {
             var file = fileInfos[i];
-//            if (IsContainABName(file.Name, allbundelsName) || file.Name.EndsWith(".meta"))
-            if (IsContainABName(file.Name, allbundelsName))
+           if (IsContainABName(file.Name, allbundelsName) || file.Name.EndsWith(".meta"))
+//            if (IsContainABName(file.Name, allbundelsName))
             {
                 continue;
             }
@@ -226,10 +226,10 @@ public class BundleEditor
     //文件夹 其他依赖
     private static bool IsContainInFileDirAB(string path)
     {
-        for (int i = 0; i < m_filterFilesPath.Count; i++)
+        for (int i = 0; i < filterFilesPath.Count; i++)
         {
-            if (path == m_filterFilesPath[i] || path.Contains(m_filterFilesPath[i]) &&
-                path.Replace(m_filterFilesPath[i], "")[0] == '/')
+            if (path == filterFilesPath[i] || path.Contains(filterFilesPath[i]) &&
+                path.Replace(filterFilesPath[i], "")[0] == '/')
             {
                 return true;
             }
@@ -285,20 +285,20 @@ public class BundleEditor
 
         asseBundleLoadConfig.ABList.ForEach(aBBase => { aBBase.Path = ""; });
 
+
         FileStream fs2 = new FileStream(PathDefine.BytesRelativePath,
-            FileMode.Open, FileAccess.ReadWrite,
-            FileShare.Write);
+            FileMode.Open, FileAccess.ReadWrite,FileShare.ReadWrite
+           );
         BinaryFormatter bf = new BinaryFormatter();
         bf.Serialize(fs2, asseBundleLoadConfig);
         fs2.Close();
     }
     private static bool IsValidPath(string path)
     {
-        for (int i = 0; i < m_filterVaildConfigs.Count; i++)
+        for (int i = 0; i < filterVaildConfigs.Count; i++)
         {
-            if (path.Contains(m_filterVaildConfigs[i])) return true;
+            if (path.Contains(filterVaildConfigs[i])) return true;
         }
-
         return false;
     }
 }
