@@ -1,9 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Net;
 using System.Runtime.Serialization.Formatters.Binary;
-using System.Text;
 using System.Xml.Serialization;
 using UnityEngine;
 using UnityEditor;
@@ -30,13 +27,13 @@ public class BundleEditor
         ABBuildConfig abBuildConfig = AssetDatabase.LoadAssetAtPath<ABBuildConfig>(PathDefine.ABBuildConfig);
         abBuildConfig.allFileDirAB.ForEach(dir =>
         {
-            if (m_fileDirsABDic.ContainsKey(dir.abName))
+            if (m_fileDirsABDic.ContainsKey(dir.aBName))
             {
                 Debug.LogError("AB包配置名字重复,请检查");
             }
             else
             {
-                m_fileDirsABDic.Add(dir.abName, dir.path);
+                m_fileDirsABDic.Add(dir.aBName, dir.path);
 
                 m_filterFilesPath.Add(dir.path);
                 m_filterVaildConfigs.Add(dir.path);
@@ -49,7 +46,7 @@ public class BundleEditor
             string path = AssetDatabase.GUIDToAssetPath(allStr[i]);
             EditorUtility.DisplayProgressBar("查找prefab", "Prefab:" + path, i * 1.0f / allStr.Length);
             m_filterVaildConfigs.Add(path);
-            if (!IsContainFileDirAB(path))
+            if (!IsContainInFileDirAB(path))
             {
                 GameObject go = AssetDatabase.LoadAssetAtPath<GameObject>(path);
                 string[] allDependices = AssetDatabase.GetDependencies(path);
@@ -57,7 +54,7 @@ public class BundleEditor
                 for (int j = 0; j < allDependices.Length; j++)
                 {
                     var dependPath = allDependices[j];
-                    if (!IsContainFileDirAB(dependPath) && !dependPath.EndsWith(".cs"))
+                    if (!IsContainInFileDirAB(dependPath) && !dependPath.EndsWith(".cs"))
                     {
                         m_filterFilesPath.Add(dependPath);
                         allDependicesPath.Add(dependPath);
@@ -74,6 +71,17 @@ public class BundleEditor
                 }
             }
         }
+
+        #region bytesfile
+
+        if (File.Exists(PathDefine.BytesFullPath))
+        {
+            File.Delete(PathDefine.BytesFullPath);
+        }
+        File.Create(PathDefine.BytesFullPath);
+        
+        #endregion
+
 
         foreach (var item in m_fileDirsABDic)
         {
@@ -172,12 +180,16 @@ public class BundleEditor
 
         #endregion
 
-        BuildPipeline.BuildAssetBundles(Application.streamingAssetsPath, BuildAssetBundleOptions.ChunkBasedCompression,
+
+        BuildPipeline.BuildAssetBundles(PathDefine.BundleTargetPath, BuildAssetBundleOptions.ChunkBasedCompression,
             EditorUserBuildSettings.activeBuildTarget);
     }
 
     private static void ClearInvalidAB()
     {
+        if (!Directory.Exists(PathDefine.BundleTargetPath))
+            Directory.CreateDirectory(PathDefine.BundleTargetPath);
+
         string[] allbundelsName = AssetDatabase.GetAllAssetBundleNames();
         DirectoryInfo directoryInfo = new DirectoryInfo(PathDefine.BundleTargetPath);
         FileInfo[] fileInfos = directoryInfo.GetFiles("*", SearchOption.AllDirectories);
@@ -212,11 +224,12 @@ public class BundleEditor
     }
 
     //文件夹 其他依赖
-    private static bool IsContainFileDirAB(string path)
+    private static bool IsContainInFileDirAB(string path)
     {
         for (int i = 0; i < m_filterFilesPath.Count; i++)
         {
-            if (path == m_filterFilesPath[i] || path.Contains(m_filterFilesPath[i]))
+            if (path == m_filterFilesPath[i] || path.Contains(m_filterFilesPath[i]) &&
+                path.Replace(m_filterFilesPath[i], "")[0] == '/')
             {
                 return true;
             }
@@ -227,11 +240,11 @@ public class BundleEditor
 
     private static void WriteData(Dictionary<string, string> assetPathDic)
     {
-        AsseBundleConfig asseBundleConfig = new AsseBundleConfig();
-        asseBundleConfig.ABList = new List<ABBase>();
+        AsseBundleLoadConfig asseBundleLoadConfig = new AsseBundleLoadConfig();
+        asseBundleLoadConfig.ABList = new List<ABBase>();
         foreach (var item in assetPathDic)
         {
-            ABBase aBBase = new ABBase()
+            ABBase aBBase = new ABBase
             {
                 Path = item.Key,
                 Crc = CRC32.GetCRC32(item.Key),
@@ -252,6 +265,7 @@ public class BundleEditor
                     {
                         continue;
                     }
+
                     if (!aBBase.AssetDependentBundles.Contains(aBName))
                     {
                         aBBase.AssetDependentBundles.Add(aBName);
@@ -259,24 +273,25 @@ public class BundleEditor
                 }
             }
 
-            asseBundleConfig.ABList.Add(aBBase);
+            asseBundleLoadConfig.ABList.Add(aBBase);
         }
 
         if (File.Exists(PathDefine.XmlPath)) File.Delete(PathDefine.XmlPath);
-        FileStream fs = new FileStream(PathDefine.XmlPath, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite);
-        XmlSerializer xmlSerializer = new XmlSerializer(typeof(AsseBundleConfig));
-        xmlSerializer.Serialize(fs, asseBundleConfig);
+        FileStream fs = new FileStream(PathDefine.XmlPath, FileMode.Create, FileAccess.ReadWrite,
+            FileShare.ReadWrite);
+        XmlSerializer xmlSerializer = new XmlSerializer(typeof(AsseBundleLoadConfig));
+        xmlSerializer.Serialize(fs, asseBundleLoadConfig);
         fs.Close();
 
-        asseBundleConfig.ABList.ForEach(aBBase => { aBBase.Path = "";});
-        if (File.Exists(PathDefine.BytesPath)) File.Delete(PathDefine.BytesPath);
-        FileStream fs2 = new FileStream(PathDefine.BytesPath, FileMode.Create, FileAccess.ReadWrite,
-            FileShare.ReadWrite);
+        asseBundleLoadConfig.ABList.ForEach(aBBase => { aBBase.Path = ""; });
+
+        FileStream fs2 = new FileStream(PathDefine.BytesRelativePath,
+            FileMode.Open, FileAccess.ReadWrite,
+            FileShare.Write);
         BinaryFormatter bf = new BinaryFormatter();
-        bf.Serialize(fs2, asseBundleConfig);
+        bf.Serialize(fs2, asseBundleLoadConfig);
         fs2.Close();
     }
-
     private static bool IsValidPath(string path)
     {
         for (int i = 0; i < m_filterVaildConfigs.Count; i++)
@@ -288,11 +303,15 @@ public class BundleEditor
     }
 }
 
-
-public class PathDefine
+public static class PathDefine
 {
     public static readonly string ABBuildConfig = "Assets/Editor/ABConfig.asset";
     public static readonly string BundleTargetPath = Application.streamingAssetsPath;
-    public static readonly string XmlPath = Application.dataPath + "/AssetBundleConfig.xml";
-    public static readonly string BytesPath = BundleTargetPath + "/AssetBundleConfig.bytes";
+    public static readonly string XmlPath = Application.dataPath + "/AssetBundleLoadConfig.xml";
+    
+    private static readonly string BytesPath = "/GameData/Data/AssetBundleData/AssetBundleLoadConfig.bytes";
+    public static readonly string BytesRelativePath =
+        "Assets" + BytesPath;
+    public static readonly string BytesFullPath =
+        Application.dataPath + BytesPath;
 }
