@@ -7,11 +7,14 @@ using UnityEngine;
 
 public class AssetBundleManager : Singleton<AssetBundleManager>
 {
-    protected Dictionary<uint, ResourceItem> ResourceItemDic = new Dictionary<uint, ResourceItem>();
+    protected Dictionary<uint, AssetItem> AssetItemDic = new Dictionary<uint, AssetItem>();
+    protected Dictionary<uint,AssetBundleItem> AssetBundleItemDic=new Dictionary<uint, AssetBundleItem>();
 
+    protected ClassObjectPool<AssetBundleItem> AssetBundleItemPool =
+        ObjectManager.Instance.GetOrCreateClassPool<AssetBundleItem>(Capacity.AssetBundleItem);
     public bool LoadAssetBundleCofig()
     {
-        ResourceItemDic.Clear();
+        AssetItemDic.Clear();
         string path = P.GetFullPath(PathDefine.BundleTargetPath, NameDefine.LoadConfigBundle);
         AssetBundle loadConfigBundle = AssetBundle.LoadFromFile(path);
         TextAsset loadConfigBytes = loadConfigBundle.LoadAsset<TextAsset>(NameDefine.LoadConfigAsset);
@@ -28,30 +31,30 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
         for (int i = 0; i < loadConfig.ABList.Count; i++)
         {
             var aBBase = loadConfig.ABList[i];
-            ResourceItem item = new ResourceItem
+            AssetItem item = new AssetItem
             {
                 crc = aBBase.Crc,
                 assetName = aBBase.AssetName,
                 assetBundleName = aBBase.AssetBundleName,
                 assetDependentBundles = aBBase.AssetDependentBundles
             };
-            if (ResourceItemDic.ContainsKey(aBBase.Crc))
+            if (AssetItemDic.ContainsKey(aBBase.Crc))
             {
                 Debug.LogError("重复的crc" + item.assetName + "ab包：" + item.assetBundleName);
             }
             else
             {
-                ResourceItemDic.Add(item.crc, item);
+                AssetItemDic.Add(item.crc, item);
             }
         }
 
         return true;
     }
 
-    public ResourceItem LoadAssetBundleResourceItem(uint crc)
+    public AssetItem LoadAssetItem(uint crc)
     {
-        ResourceItem item;
-        if (!ResourceItemDic.TryGetValue(crc, out item) || item == null)
+        AssetItem item;
+        if (!AssetItemDic.TryGetValue(crc, out item) || item == null)
         {
             Debug.LogError($"{MethodBase.GetCurrentMethod().Name} Error: Can not Find {crc} in ResourceItemDic");
             return null;
@@ -69,18 +72,28 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
 
     private AssetBundle LoadAssetBundle(string name)
     {
-        AssetBundle assetBundle = null;
-        string path = P.GetFullPath(PathDefine.BundleTargetPath, name);
-        if (File.Exists(path))
-        {
-            assetBundle = AssetBundle.LoadFromFile(path);
-        }
-        if (assetBundle == null)
-        {
-            Debug.LogError($"{MethodBase.GetCurrentMethod().Name} Error: {path} cant load");
-        }
 
-        return assetBundle;
+        AssetBundleItem item = null;
+        uint crc = CRC32.GetCRC32(name);
+        if (!AssetBundleItemDic.TryGetValue(crc, out item))
+        {
+            AssetBundle assetBundle = null;
+            string path = P.GetFullPath(PathDefine.BundleTargetPath, name);
+            if (File.Exists(path))
+            {
+                assetBundle = AssetBundle.LoadFromFile(path);
+            }
+            if (assetBundle == null)
+            {
+                Debug.LogError($"{MethodBase.GetCurrentMethod().Name} Error: {path} cant load");
+            }
+
+            item = AssetBundleItemPool.Spawn();
+            item.AssetBundle = assetBundle;
+            AssetBundleItemDic.Add(crc,item);
+        }
+        item.RefCount++;
+        return item.AssetBundle;
 
     }
 }
@@ -96,9 +109,9 @@ public class AssetBundleItem
         RefCount = 0;
     }
 }
-public class ResourceItem
+public class AssetItem
 {
-    public uint crc;
+    public uint crc; 
     public string assetName;
     public string assetBundleName;
     public List<string> assetDependentBundles;
