@@ -8,10 +8,11 @@ using UnityEngine;
 public class AssetBundleManager : Singleton<AssetBundleManager>
 {
     protected Dictionary<uint, AssetItem> AssetItemDic = new Dictionary<uint, AssetItem>();
-    protected Dictionary<uint,AssetBundleItem> AssetBundleItemDic=new Dictionary<uint, AssetBundleItem>();
+    protected Dictionary<uint, AssetBundleItem> AssetBundleItemDic = new Dictionary<uint, AssetBundleItem>();
 
     protected ClassObjectPool<AssetBundleItem> AssetBundleItemPool =
         ObjectManager.Instance.GetOrCreateClassPool<AssetBundleItem>(Capacity.AssetBundleItem);
+
     public bool LoadAssetBundleCofig()
     {
         AssetItemDic.Clear();
@@ -72,7 +73,6 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
 
     private AssetBundle LoadAssetBundle(string name)
     {
-
         AssetBundleItem item = null;
         uint crc = CRC32.GetCRC32(name);
         if (!AssetBundleItemDic.TryGetValue(crc, out item))
@@ -83,6 +83,7 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
             {
                 assetBundle = AssetBundle.LoadFromFile(path);
             }
+
             if (assetBundle == null)
             {
                 Debug.LogError($"{MethodBase.GetCurrentMethod().Name} Error: {path} cant load");
@@ -90,11 +91,49 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
 
             item = AssetBundleItemPool.Spawn();
             item.AssetBundle = assetBundle;
-            AssetBundleItemDic.Add(crc,item);
+            AssetBundleItemDic.Add(crc, item);
         }
+
         item.RefCount++;
         return item.AssetBundle;
+    }
 
+    public void ReleaseAsset(AssetItem assetItem)
+    {
+        if (assetItem == null)
+            return;
+        var dependentBundles = assetItem.assetDependentBundles;
+        if (dependentBundles != null && dependentBundles.Count
+            > 0)
+        {
+            for (int i = 0; i < dependentBundles.Count; i++)
+            {
+                UnLoadAssetBundle(dependentBundles[i]);
+            }
+        }
+        UnLoadAssetBundle(assetItem.assetBundleName);
+    }
+
+    private void UnLoadAssetBundle(string name)
+    {
+        uint crc = CRC32.GetCRC32(name);
+        AssetBundleItem item ;
+        if (AssetBundleItemDic.TryGetValue(crc, out item) && item != null)
+        {
+            item.RefCount--;
+            if (item.RefCount <= 0 && item.AssetBundle != null)
+            {
+                item.AssetBundle.Unload(true);
+                item.Rest();
+                AssetBundleItemPool.Recycle(item);
+                AssetBundleItemDic.Remove(crc);
+            }
+        }
+    }
+
+    public AssetItem FindAssetItem(uint crc)
+    {
+        return AssetItemDic[crc];
     }
 }
 
@@ -109,9 +148,10 @@ public class AssetBundleItem
         RefCount = 0;
     }
 }
+
 public class AssetItem
 {
-    public uint crc; 
+    public uint crc;
     public string assetName;
     public string assetBundleName;
     public List<string> assetDependentBundles;
