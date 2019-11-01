@@ -2,7 +2,7 @@
 
 public class ClassObjectPool<T> where T : class, new()
 {
-    protected Stack<T> pool;
+    protected Stack<T> pool=new Stack<T>();
 
     //<=0 infinity
     protected int capacity = 0;

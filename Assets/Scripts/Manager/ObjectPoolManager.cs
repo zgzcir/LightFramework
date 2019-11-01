@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class ObjectManager : Singleton<ObjectManager>
+public class ObjectPoolManager : Singleton<ObjectPoolManager>
 {
     protected Dictionary<Type, object> classPoolDic = new Dictionary<Type, object>();
 
@@ -15,8 +15,8 @@ public class ObjectManager : Singleton<ObjectManager>
         {
             ClassObjectPool<T> newPool = new ClassObjectPool<T>(capacity);
             classPoolDic.Add(typeof(T), newPool);
+            outObj = newPool;
         }
-
         return outObj as ClassObjectPool<T>;
     }
 

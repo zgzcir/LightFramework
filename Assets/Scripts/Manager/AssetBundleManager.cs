@@ -11,7 +11,7 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
     protected Dictionary<uint, AssetBundleItem> AssetBundleItemDic = new Dictionary<uint, AssetBundleItem>();
 
     protected ClassObjectPool<AssetBundleItem> AssetBundleItemPool =
-        ObjectManager.Instance.GetOrCreateClassPool<AssetBundleItem>(Capacity.AssetBundleItem);
+        ObjectPoolManager.Instance.GetOrCreateClassPool<AssetBundleItem>(Capacity.AssetBundleItem);
 
     public bool LoadAssetBundleCofig()
     {
@@ -52,9 +52,10 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
         return true;
     }
 
-    public AssetItem LoadAssetItem(uint crc)
+    public AssetItem LoadAssetItemBundle(uint crc)
     {
         AssetItem item;
+        //加载配置时生成
         if (!AssetItemDic.TryGetValue(crc, out item) || item == null)
         {
             Debug.LogError($"{MethodBase.GetCurrentMethod().Name} Error: Can not Find {crc} in ResourceItemDic");
@@ -102,6 +103,7 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
     {
         if (assetItem == null)
             return;
+//        assetItem.AssetObject = null;
         var dependentBundles = assetItem.assetDependentBundles;
         if (dependentBundles != null && dependentBundles.Count
             > 0)
@@ -130,7 +132,6 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
             }
         }
     }
-
     public AssetItem FindAssetItem(uint crc)
     {
         return AssetItemDic[crc];
@@ -156,4 +157,25 @@ public class AssetItem
     public string assetBundleName;
     public List<string> assetDependentBundles;
     public AssetBundle assetBundle;
+
+    
+        
+    
+    public Object AssetObject;
+    public int guid;
+    public float lastUseTime;
+    protected int refCount;
+
+    public int RefCount
+    {
+        get => refCount;
+        set
+        {
+            refCount = value;
+            if (refCount < 0)
+            {
+                Debug.LogError("refcount < 0"+refCount+" ,"+AssetObject!=null?AssetObject.name:"name is null");
+            }
+        }
+    }
 }
