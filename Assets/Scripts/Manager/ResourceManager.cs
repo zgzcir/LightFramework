@@ -2,9 +2,65 @@
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
+public enum LoadResPriority
+{
+    RES_HIGH=0,
+    RES_MIDDLE,
+    RES_LOW,
+    RES_NUM
+}
+public class AsycLoadAssetParam
+{
+    public List<AsyncCallBackPack> CallBackPacks=new List<AsyncCallBackPack>();
+
+    public uint Crc;
+    public string Path;
+    public LoadResPriority Priority = LoadResPriority.RES_LOW;
+
+    public void Reset()
+    {
+        CallBackPacks.Clear();
+        Crc = 0;
+        Path = "";
+        Priority = LoadResPriority.RES_LOW;
+    }
+}
+public class AsyncCallBackPack
+{
+    public OnAsyncObjecFinish callBack;
+    public object[] paramList;
+
+    public void Reset()
+    {
+        callBack = null;
+        paramList = null;
+    }
+}
+
+public delegate void OnAsyncObjecFinish(string path, Object obj,params object[] paramList);
 public class ResourceManager : Singleton<ResourceManager>
 {
+
+    protected MonoBehaviour startMono;
+    //异步加载队列 ?2
+    protected  List<AsycLoadAssetParam> [] loadingAssetLists=new List<AsycLoadAssetParam>[(int)LoadResPriority.RES_NUM];
+    protected  Dictionary<uint,AsycLoadAssetParam> loadingAssetDic=new Dictionary<uint, AsycLoadAssetParam>();
+
+    protected ClassObjectPool<AsycLoadAssetParam> asyncLoadResParamPool=new ClassObjectPool<AsycLoadAssetParam>(Capacity.AsyncLoadAssetParam);
+    protected ClassObjectPool<AsyncCallBackPack> asyncCallBackPackPool=new ClassObjectPool<AsyncCallBackPack>(Capacity.AsyncCallBack);
+    public void Init(MonoBehaviour mono)
+    {
+        for (int i = 0; i < (int)LoadResPriority.RES_NUM; i++)
+        {
+            loadingAssetLists[i] = new List<AsycLoadAssetParam>();
+        }
+        startMono = mono;
+        startMono.StartCoroutine(AsyncLoadCor());
+    }
+    
+
     public bool IsLoadFromAssetBundle = false;
 
     protected CMapList<AssetItem> unRefAseetItems = new CMapList<AssetItem>();
@@ -27,7 +83,7 @@ public class ResourceManager : Singleton<ResourceManager>
 
         T obj = null;
 #if UNITY_EDITOR
-        if (IsLoadFromAssetBundle)
+        if (!IsLoadFromAssetBundle)
         {
             item = AssetBundleManager.Instance.FindAssetItem(crc);
             if (item.AssetObject != null)
@@ -135,8 +191,6 @@ public class ResourceManager : Singleton<ResourceManager>
         return AssetDatabase.LoadAssetAtPath<T>(path);
     }
 #endif
-
-
     private AssetItem GetCacheAssetItem(uint crc, int refCount = 1)
     {
         if (AssetDic.TryGetValue(crc, out var item))
@@ -150,6 +204,42 @@ public class ResourceManager : Singleton<ResourceManager>
         }
 
         return item;
+    }
+
+    public void AsyncLoadResource(string path,OnAsyncObjecFinish cb,LoadResPriority priority,uint crc=0,params object[] paramList)
+    {
+        if (crc == 0)
+            crc = CRC32.GetCRC32(path);
+
+        AssetItem item = GetCacheAssetItem(crc);
+        if (item != null)
+        {
+            cb?.Invoke(path, item.AssetObject, paramList);
+            return;
+        }
+
+        AsycLoadAssetParam para = null;
+        if (!loadingAssetDic.TryGetValue(crc, out para))
+        {
+            para = asyncLoadResParamPool.Spawn();
+            para.Crc = crc;
+            para.Path = path;
+            para.Priority = priority;
+            loadingAssetDic.Add(crc,para);
+            loadingAssetLists[(int) priority].Add(para);
+        }
+
+        AsyncCallBackPack callBackPack = asyncCallBackPackPool.Spawn();
+        callBackPack.callBack = cb;
+        callBackPack.paramList = paramList;
+        para.CallBackPacks.Add(callBackPack);
+    }
+    IEnumerator AsyncLoadCor()
+    {
+        while (true)
+        {
+            yield return null;
+        }
     }
 }
 
