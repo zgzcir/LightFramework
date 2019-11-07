@@ -12,6 +12,9 @@ public enum LoadResPriority
     RES_NUM
 }
 
+
+
+
 public class AsyncLoadAssetParam
 {
     public List<AsyncCallBackPack> CallBackPacks = new List<AsyncCallBackPack>();
@@ -20,6 +23,7 @@ public class AsyncLoadAssetParam
     public string Path;
     public LoadResPriority Priority = LoadResPriority.RES_LOW;
     public bool isSprite = false;
+
     public void Reset()
     {
         CallBackPacks.Clear();
@@ -71,6 +75,61 @@ public class ResourceManager : Singleton<ResourceManager>
         startMono.StartCoroutine(AsyncLoadCor());
     }
 
+    /// <summary>
+    ///跳场景
+    /// </summary>
+    public void ClearCache()
+    {
+        List<AssetItem> items = new List<AssetItem>();
+        foreach (var item in AssetDic.Values)
+        {
+            if (item.IsClear) items.Add(item);
+        }
+
+        items.ForEach(i => { DestroyAssetItem(i, true); });
+        items.Clear();
+    }
+
+    public void PreLoadRes(string path)
+    {
+        if (string.IsNullOrEmpty(path))
+            return;
+        uint crc = CRC32.GetCRC32(path);
+        AssetItem item = GetCacheAssetItem(crc, 0);
+        if (item != null)
+        {
+//            item.IsClear = false;
+            return;
+        }
+
+        Object obj = null;
+#if UNITY_EDITOR
+        if (!IsLoadFromAssetBundle)
+        {
+            item = AssetBundleManager.Instance.FindAssetItem(crc);
+            if (item.AssetObject != null)
+                obj = item.AssetObject;
+            else
+                obj = LoadAssetByEditor<Object>(path);
+        }
+#endif
+        if (obj == null)
+        {
+            item = AssetBundleManager.Instance.LoadAssetItemBundle(crc);
+            if (item != null && item.assetBundle != null)
+            {
+                if (item.AssetObject != null)
+                    obj = item.AssetObject;
+                else
+                    obj = item.assetBundle.LoadAsset<Object>(item.assetName);
+            }
+        }
+
+        CacheResource(path, ref item, crc, obj);
+        //跳场景
+        item.IsClear = false;
+        ReleaseResource(path);
+    }
 
     public bool IsLoadFromAssetBundle = false;
 
@@ -119,6 +178,7 @@ public class ResourceManager : Singleton<ResourceManager>
         return obj;
     }
 
+    //减少引用计数
     public bool ReleaseResource(Object obj, bool destroyObj = false)
     {
         if (obj == null) return false;
@@ -138,7 +198,23 @@ public class ResourceManager : Singleton<ResourceManager>
         }
 
         item.RefCount--;
-        
+        if (destroyObj)
+            DestroyAssetItem(item, destroyObj);
+        return true;
+    }
+
+    public bool ReleaseResource(string path, bool destroyObj = false)
+    {
+        if (string.IsNullOrEmpty(path)) return false;
+        uint crc = CRC32.GetCRC32(path);
+        AssetItem item = null;
+        if (!AssetDic.TryGetValue(crc, out item))
+        {
+            Debug.LogError("AssetDic not exits " + path + "，可能进行了多次释放");
+            return false;
+        }
+
+        item.RefCount--;
         DestroyAssetItem(item, destroyObj);
         return true;
     }
@@ -182,17 +258,19 @@ public class ResourceManager : Singleton<ResourceManager>
 //        }
     }
 
+//字典去除 卸载bundle
     private void DestroyAssetItem(AssetItem item, bool destroyCache = false)
     {
+        if (!destroyCache)
+        {
+//            unRefAseetItems.InsertToHead(item);
+            return;
+        }
+
         if (item == null || item.RefCount > 0)
             return;
         if (!AssetDic.Remove(item.crc))
             return;
-        if (!destroyCache)
-        {
-            unRefAseetItems.InsertToHead(item);
-            return;
-        }
 #if UNITY_EDITOR
         Resources.UnloadUnusedAssets();
 //        return;
@@ -210,7 +288,7 @@ public class ResourceManager : Singleton<ResourceManager>
     {
         if (AssetDic.TryGetValue(crc, out var item))
         {
-            item.RefCount++;
+            item.RefCount += refCount;
             item.lastUseTime = Time.realtimeSinceStartup;
 //            if (item.RefCount <= 1)
 //            {
@@ -289,14 +367,16 @@ public class ResourceManager : Singleton<ResourceManager>
                         }
                         else
                         {
-                            request=item.assetBundle.LoadAssetAsync(item.assetName);
+                            request = item.assetBundle.LoadAssetAsync(item.assetName);
                         }
+
                         yield return request;
                         if (request.isDone)
                             obj = request.asset;
                         lastYieldTime = System.DateTime.Now.Ticks;
                     }
                 }
+
                 CacheResource(asyncLoadAssetParam.Path, ref item, asyncLoadAssetParam.Crc, obj,
                     asyncCallBackPacks.Count);
                 for (int j = 0; j < asyncCallBackPacks.Count; j++)
@@ -306,24 +386,26 @@ public class ResourceManager : Singleton<ResourceManager>
                     pack?.Reset();
                     asyncCallBackPackPool.Recycle(pack);
                 }
+
                 asyncCallBackPacks.Clear();
                 loadingAssetDic.Remove(asyncLoadAssetParam.Crc);
                 asyncLoadAssetParam.Reset();
                 asyncLoadResParamPool.Recycle(asyncLoadAssetParam);
-                if (System.DateTime.Now.Ticks - lastYieldTime >TimeOut.AsyncLoad)
+                if (System.DateTime.Now.Ticks - lastYieldTime > TimeOut.AsyncLoad)
                 {
                     yield return null;
                     lastYieldTime = System.DateTime.Now.Ticks;
-                    isHaveYield = true; 
+                    isHaveYield = true;
                 }
             }
-            if (!isHaveYield||System.DateTime.Now.Ticks - lastYieldTime >TimeOut.AsyncLoad)
+
+            if (!isHaveYield || System.DateTime.Now.Ticks - lastYieldTime > TimeOut.AsyncLoad)
             {
                 yield return null;
                 lastYieldTime = System.DateTime.Now.Ticks;
             }
         }
-    } 
+    }
 }
 
 public class DoubleLinkedListNode<T> where T : class
@@ -342,7 +424,7 @@ public class DoubleLinkedList<T> where T : class
 
 
     protected ClassObjectPool<DoubleLinkedListNode<T>> DoubleLinkNodePool =
-        ObjectPoolManager.Instance.GetOrCreateClassPool<DoubleLinkedListNode<T>>(Capacity.DoubleLinkedListNode);
+        ObjectlManager.Instance.GetOrCreateClassPool<DoubleLinkedListNode<T>>(Capacity.DoubleLinkedListNode);
 
     protected int count = 0;
     public int Count => count;
