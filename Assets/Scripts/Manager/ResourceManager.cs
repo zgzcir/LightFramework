@@ -12,7 +12,26 @@ public enum LoadResPriority
     RES_NUM
 }
 
+public class ObjectItem
+{
+    public uint Crc;
 
+    public AssetItem PrimitiveAssetItem;
+    public GameObject CloneObj;
+
+    public bool isClear = true;
+
+    public long guid;
+
+    public void Reset()
+    {
+        Crc = 0;
+        CloneObj = null;
+        isClear = true;
+        guid = 0;
+        PrimitiveAssetItem = null;
+    }
+}
 
 
 public class AsyncLoadAssetParam
@@ -178,6 +197,47 @@ public class ResourceManager : Singleton<ResourceManager>
         return obj;
     }
 
+    //给ObjectManager的接口
+    public ObjectItem LoadPrimitiveAssetItem(string path,ObjectItem objectItem)
+    {
+        if (objectItem == null)
+            return null;
+        uint crc = objectItem.Crc == 0 ? CRC32.GetCRC32(path) : objectItem.Crc;
+
+        AssetItem  assetItem= GetCacheAssetItem(crc);
+        if (assetItem != null)
+        {
+            objectItem.PrimitiveAssetItem = assetItem;
+            return objectItem;
+        }
+        Object obj = null;
+#if UNITY_EDITOR
+        if (!IsLoadFromAssetBundle)
+        {
+            assetItem = AssetBundleManager.Instance.FindAssetItem(crc);
+            if (assetItem.AssetObject != null)
+                obj = assetItem.AssetObject ;
+            else
+                obj = LoadAssetByEditor<Object>(path);
+        }
+#endif
+        if (obj == null)
+        {
+            assetItem = AssetBundleManager.Instance.LoadAssetItemBundle(crc);
+            if (assetItem != null && assetItem.assetBundle != null)
+            {
+                if (assetItem.AssetObject != null)
+                    obj = assetItem.AssetObject as Object;
+                else 
+                    obj = assetItem.assetBundle.LoadAsset<Object>(assetItem.assetName);
+            }
+        }
+        assetItem.IsClear = objectItem.isClear;
+        CacheResource(path, ref assetItem, crc, obj);
+        objectItem.PrimitiveAssetItem = assetItem;
+
+        return objectItem; 
+    }
     //减少引用计数
     public bool ReleaseResource(Object obj, bool destroyObj = false)
     {
@@ -408,6 +468,7 @@ public class ResourceManager : Singleton<ResourceManager>
     }
 }
 
+#region list
 public class DoubleLinkedListNode<T> where T : class
 {
     public DoubleLinkedListNode<T> prev;
@@ -654,3 +715,4 @@ public class CMapList<T> where T : class, new()
         return true;
     }
 }
+#endregion
