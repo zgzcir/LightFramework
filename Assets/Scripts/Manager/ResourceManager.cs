@@ -111,6 +111,35 @@ public class ResourceManager : Singleton<ResourceManager>
         items.Clear();
     }
 
+    public int IncreaseResourceRef(ObjectItem objectItem, int refCount = 1)
+    {
+        return objectItem == null ? IncreaseResourceRef(objectItem.Crc, refCount) : 0;
+    }
+
+    public int IncreaseResourceRef(uint crc, int refCount = 1)
+    {
+        AssetItem assetItem = null;
+        if (!AssetDic.TryGetValue(crc, out assetItem))
+            return 0;
+        assetItem.RefCount += refCount;
+        assetItem.lastUseTime = Time.realtimeSinceStartup;
+        return assetItem.RefCount;
+    }
+
+    public int DecreaseResourceRef(ObjectItem objectItem, int refCount = 1)
+    {
+        return objectItem == null ? DecreaseResourceRef(objectItem.Crc, refCount) : 0;
+    }
+
+    public int DecreaseResourceRef(uint crc, int refCount = 1)
+    {
+        AssetItem assetItem = null;
+        if (!AssetDic.TryGetValue(crc, out assetItem))
+            return 0;
+        assetItem.RefCount -= refCount;
+        return assetItem.RefCount;
+    }
+
     public void PreLoadRes(string path)
     {
         if (string.IsNullOrEmpty(path))
@@ -243,8 +272,18 @@ public class ResourceManager : Singleton<ResourceManager>
         return objectItem;
     }
 
-    //减少引用计数
-    public bool ReleaseResource(Object obj, bool isDestroyPrimitiveCache = false)
+
+    public bool ReleaseResource(ObjectItem objectItem, bool isDestroyCache = false)
+    {
+        if (objectItem == null) return false;
+        Object.Destroy(objectItem.CloneObj);
+        objectItem.PrimitiveAssetItem.RefCount--;
+        if (isDestroyCache)
+            DestroyAssetItem(objectItem.PrimitiveAssetItem, isDestroyCache);
+        return true;
+    }
+    //out direct
+    public bool ReleaseResource(Object obj, bool isDestroyCache = false)
     {
         if (obj == null) return false;
         AssetItem item = null;
@@ -263,38 +302,13 @@ public class ResourceManager : Singleton<ResourceManager>
         }
 
         item.RefCount--;
-        if (isDestroyPrimitiveCache)
-            DestroyAssetItem(item, isDestroyPrimitiveCache);
+        if (isDestroyCache)
+            DestroyAssetItem(item, isDestroyCache);
         return true;
     }
 
-    public bool ReleaseResource(ObjectItem objectItem, bool isDestroyPrimitiveCache = false)
-    {
-        if (objectItem == null) return false;
-        AssetItem assetItem = null;
-        foreach (var res in AssetDic.Values)
-        {
-            if (res.guid == objectItem.CloneObj.GetInstanceID())
-            {
-                assetItem = res;
-            }
-        }
-        if (assetItem == null)
-        {
-            Debug.LogError("AssetDic not exits " + objectItem.CloneObj.name + "，可能进行了多次释放");
-            return false;
-        }
-        Object.Destroy(objectItem.CloneObj);
-        assetItem.RefCount--;
-        if (isDestroyPrimitiveCache)
-            DestroyAssetItem(assetItem, isDestroyPrimitiveCache);
-        return true;
 
-
-        return ReleaseResource(objectItem.PrimitiveAssetItem.AssetObject, isDestroyPrimitiveCache);
-    }
-
-    public bool ReleaseResource(string path, bool isDestroyPrimitiveCache = false)
+    public bool ReleaseResource(string path, bool isDestroyCache = false)
     {
         if (string.IsNullOrEmpty(path)) return false;
         uint crc = CRC32.GetCRC32(path);
@@ -306,7 +320,7 @@ public class ResourceManager : Singleton<ResourceManager>
         }
 
         item.RefCount--;
-        DestroyAssetItem(item, isDestroyPrimitiveCache);
+        DestroyAssetItem(item, isDestroyCache);
         return true;
     }
 

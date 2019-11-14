@@ -25,12 +25,14 @@ public class ObjectManager : Singleton<ObjectManager>
         RecylePoolTrans = transRecylePool;
         SceneTrans = sceneTrans;
     }
+
     protected ObjectItem GetCacheObjectItemFromDic(uint crc)
     {
         List<ObjectItem> objectItems = null;
         if (objectItemsInstancePoolDic.TryGetValue(crc, out objectItems) && objectItems.Count > 0)
         {
-            //resourcemanager 引用计数
+            ResourceManager.Instance.IncreaseResourceRef(crc);
+            
             var item = objectItems[0];
             objectItems.RemoveAt(0);
             GameObject gameObject = item.CloneObj;
@@ -51,7 +53,7 @@ public class ObjectManager : Singleton<ObjectManager>
         return null;
     }
 
-    public GameObject InstantiateObject(string path, bool isClear = true, bool SetSceneTrans = false)
+    public GameObject InstantiateObject(string path,  bool SetSceneTrans = false,bool isClear = true)
     {
         uint crc = CRC32.GetCRC32(path);
         ObjectItem objectItem = GetCacheObjectItemFromDic(crc);
@@ -83,7 +85,7 @@ public class ObjectManager : Singleton<ObjectManager>
         return objectItem.CloneObj;
     }
 
-    public void ReleaseObject(GameObject obj, int maxCacheCount = -1, bool isDestroyCache = false,
+    public void ReleaseObject(GameObject obj, int maxCacheCount = -1, bool isDestroyPrimitiveCache = false,
         bool recyleParent = true)
     {
         if (obj == null) return;
@@ -106,7 +108,7 @@ public class ObjectManager : Singleton<ObjectManager>
         if (maxCacheCount == 0)
         {
             ObjectItemsInstanceTempDic.Remove(guid);
-            ResourceManager.Instance.ReleaseResource(objectItem, isDestroyCache);
+            ResourceManager.Instance.ReleaseResource(objectItem, isDestroyPrimitiveCache);
             objectItem.Reset();
             objectItemNativePool.Recycle(objectItem);
         }
@@ -133,12 +135,12 @@ public class ObjectManager : Singleton<ObjectManager>
             {
                 objectItems.Add(objectItem);
                 objectItem.isAlredayRelease = true;
-                //resourcemanager 引用计数
+                ResourceManager.Instance.DecreaseResourceRef(objectItem);
             }
             else
             {
                 ObjectItemsInstanceTempDic.Remove(guid);
-                ResourceManager.Instance.ReleaseResource(objectItem, isDestroyCache);
+                ResourceManager.Instance.ReleaseResource(objectItem, isDestroyPrimitiveCache);
                 objectItem.Reset();
                 objectItemNativePool.Recycle(objectItem);
             }
