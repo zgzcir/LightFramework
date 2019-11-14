@@ -11,7 +11,7 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
     protected Dictionary<uint, AssetBundleItem> AssetBundleItemDic = new Dictionary<uint, AssetBundleItem>();
 
     protected ClassObjectPool<AssetBundleItem> AssetBundleItemPool =
-        ObjectPoolManager.Instance.GetOrCreateClassPool<AssetBundleItem>(Capacity.AssetBundleItem);
+        ObjectManager.Instance.GetOrCreateClassPool<AssetBundleItem>(Capacity.AssetBundleItem);
 
     public bool LoadAssetBundleCofig()
     {
@@ -178,4 +178,7 @@ public class AssetItem
             }
         }
     }
+
+
+    public bool IsClear = true;
 }

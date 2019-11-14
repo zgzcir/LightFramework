@@ -22,6 +22,7 @@ public class ObjectItem
     public bool isClear = true;
 
     public long guid;
+    public bool isAlredayRelease = false;
 
     public void Reset()
     {
@@ -30,6 +31,7 @@ public class ObjectItem
         isClear = true;
         guid = 0;
         PrimitiveAssetItem = null;
+        isAlredayRelease = false;
     }
 }
 
@@ -198,25 +200,26 @@ public class ResourceManager : Singleton<ResourceManager>
     }
 
     //给ObjectManager的接口
-    public ObjectItem LoadPrimitiveAssetItem(string path,ObjectItem objectItem)
+    public ObjectItem LoadPrimitiveAssetItem(string path, ObjectItem objectItem)
     {
         if (objectItem == null)
             return null;
         uint crc = objectItem.Crc == 0 ? CRC32.GetCRC32(path) : objectItem.Crc;
 
-        AssetItem  assetItem= GetCacheAssetItem(crc);
+        AssetItem assetItem = GetCacheAssetItem(crc);
         if (assetItem != null)
         {
             objectItem.PrimitiveAssetItem = assetItem;
             return objectItem;
         }
+
         Object obj = null;
 #if UNITY_EDITOR
         if (!IsLoadFromAssetBundle)
         {
             assetItem = AssetBundleManager.Instance.FindAssetItem(crc);
             if (assetItem.AssetObject != null)
-                obj = assetItem.AssetObject ;
+                obj = assetItem.AssetObject;
             else
                 obj = LoadAssetByEditor<Object>(path);
         }
@@ -228,18 +231,20 @@ public class ResourceManager : Singleton<ResourceManager>
             {
                 if (assetItem.AssetObject != null)
                     obj = assetItem.AssetObject as Object;
-                else 
+                else
                     obj = assetItem.assetBundle.LoadAsset<Object>(assetItem.assetName);
             }
         }
+
         assetItem.IsClear = objectItem.isClear;
         CacheResource(path, ref assetItem, crc, obj);
         objectItem.PrimitiveAssetItem = assetItem;
 
-        return objectItem; 
+        return objectItem;
     }
+
     //减少引用计数
-    public bool ReleaseResource(Object obj, bool destroyObj = false)
+    public bool ReleaseResource(Object obj, bool isDestroyPrimitiveCache = false)
     {
         if (obj == null) return false;
         AssetItem item = null;
@@ -258,12 +263,38 @@ public class ResourceManager : Singleton<ResourceManager>
         }
 
         item.RefCount--;
-        if (destroyObj)
-            DestroyAssetItem(item, destroyObj);
+        if (isDestroyPrimitiveCache)
+            DestroyAssetItem(item, isDestroyPrimitiveCache);
         return true;
     }
 
-    public bool ReleaseResource(string path, bool destroyObj = false)
+    public bool ReleaseResource(ObjectItem objectItem, bool isDestroyPrimitiveCache = false)
+    {
+        if (objectItem == null) return false;
+        AssetItem assetItem = null;
+        foreach (var res in AssetDic.Values)
+        {
+            if (res.guid == objectItem.CloneObj.GetInstanceID())
+            {
+                assetItem = res;
+            }
+        }
+        if (assetItem == null)
+        {
+            Debug.LogError("AssetDic not exits " + objectItem.CloneObj.name + "，可能进行了多次释放");
+            return false;
+        }
+        Object.Destroy(objectItem.CloneObj);
+        assetItem.RefCount--;
+        if (isDestroyPrimitiveCache)
+            DestroyAssetItem(assetItem, isDestroyPrimitiveCache);
+        return true;
+
+
+        return ReleaseResource(objectItem.PrimitiveAssetItem.AssetObject, isDestroyPrimitiveCache);
+    }
+
+    public bool ReleaseResource(string path, bool isDestroyPrimitiveCache = false)
     {
         if (string.IsNullOrEmpty(path)) return false;
         uint crc = CRC32.GetCRC32(path);
@@ -275,7 +306,7 @@ public class ResourceManager : Singleton<ResourceManager>
         }
 
         item.RefCount--;
-        DestroyAssetItem(item, destroyObj);
+        DestroyAssetItem(item, isDestroyPrimitiveCache);
         return true;
     }
 
@@ -469,6 +500,7 @@ public class ResourceManager : Singleton<ResourceManager>
 }
 
 #region list
+
 public class DoubleLinkedListNode<T> where T : class
 {
     public DoubleLinkedListNode<T> prev;
@@ -485,7 +517,7 @@ public class DoubleLinkedList<T> where T : class
 
 
     protected ClassObjectPool<DoubleLinkedListNode<T>> DoubleLinkNodePool =
-        ObjectlManager.Instance.GetOrCreateClassPool<DoubleLinkedListNode<T>>(Capacity.DoubleLinkedListNode);
+        ObjectManager.Instance.GetOrCreateClassPool<DoubleLinkedListNode<T>>(Capacity.DoubleLinkedListNode);
 
     protected int count = 0;
     public int Count => count;
@@ -715,4 +747,5 @@ public class CMapList<T> where T : class, new()
         return true;
     }
 }
+
 #endregion
