@@ -32,7 +32,7 @@ public class ObjectManager : Singleton<ObjectManager>
         if (objectItemsInstancePoolDic.TryGetValue(crc, out objectItems) && objectItems.Count > 0)
         {
             ResourceManager.Instance.IncreaseResourceRef(crc);
-            
+
             var item = objectItems[0];
             objectItems.RemoveAt(0);
             GameObject gameObject = item.CloneObj;
@@ -53,7 +53,7 @@ public class ObjectManager : Singleton<ObjectManager>
         return null;
     }
 
-    public GameObject InstantiateObject(string path,  bool SetSceneTrans = false,bool isClear = true)
+    public GameObject InstantiateObject(string path, bool isSetSceneTrans = false, bool isClear = true)
     {
         uint crc = CRC32.GetCRC32(path);
         ObjectItem objectItem = GetCacheObjectItemFromDic(crc);
@@ -71,7 +71,7 @@ public class ObjectManager : Singleton<ObjectManager>
             }
         }
 
-        if (SetSceneTrans)
+        if (isSetSceneTrans)
         {
             objectItem.CloneObj.transform.SetParent(SceneTrans, false);
         }
@@ -119,6 +119,7 @@ public class ObjectManager : Singleton<ObjectManager>
                 objectItems = new List<ObjectItem>(); //TODO
                 objectItemsInstancePoolDic.Add(objectItem.Crc, objectItems);
             }
+
             if (objectItem.CloneObj)
             {
                 if (recyleParent)
@@ -146,6 +147,67 @@ public class ObjectManager : Singleton<ObjectManager>
             }
         }
     }
+
+    #region async
+
+    public void InstantiateObjectAsync(string path, OnAsyncObjectFinish outerCallBack, LoadResPriority priority,
+        bool isClear = true, bool isSetSceneTrans = false, params object[] paramList)
+    {
+        if (string.IsNullOrEmpty(path)) return;
+        uint crc = CRC32.GetCRC32(path);
+        ObjectItem objectItem = GetCacheObjectItemFromDic(crc);
+        if (objectItem != null)
+        {
+            if (isSetSceneTrans)
+            {
+                objectItem.CloneObj.transform.SetParent(SceneTrans, false);
+            }
+
+            outerCallBack?.Invoke(path, objectItem, paramList);
+            return;
+        }
+
+        objectItem = objectItemNativePool.Spawn();
+        objectItem.Crc = crc;
+        objectItem.IsSetSceneParent = isSetSceneTrans;
+        objectItem.isClear = isClear;
+        objectItem.outerCallBack = outerCallBack;
+        objectItem.paramList = paramList;
+        //调用ResourceManager异步加载接口
+        ResourceManager.Instance.AsyncLoadResource(path, objectItem, (_path, item, plist) =>
+        {
+            if (item == null) return;
+            if (item.PrimitiveAssetItem.AssetObject == null)
+            {
+#if UNITY_EDITOR
+                Debug.LogError("异步资源加载为空" + _path);
+#endif
+            }
+            else
+            {
+                //实例化
+                item.CloneObj = Object.Instantiate(item.PrimitiveAssetItem.AssetObject) as GameObject;
+            }
+
+            if (item.CloneObj != null && item.IsSetSceneParent)
+            {
+                item.CloneObj.transform.SetParent(SceneTrans);
+            }
+
+            if (item.outerCallBack != null)
+            {
+                int guid = item.CloneObj.GetInstanceID();
+                if (!ObjectItemsInstanceTempDic.ContainsKey(guid))
+                {
+                    ObjectItemsInstanceTempDic.Add(guid,item);
+                }
+                item.outerCallBack?.Invoke(_path,item,plist);
+            }
+            
+        }, priority);
+    }
+
+    #endregion
 
     #region pool
 

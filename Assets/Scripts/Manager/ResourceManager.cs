@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
@@ -24,6 +25,14 @@ public class ObjectItem
     public long guid;
     public bool isAlredayRelease = false;
 
+    #region async
+
+    public bool IsSetSceneParent = false;
+    public OnAsyncObjectFinish outerCallBack;
+    public object[] paramList;
+
+    #endregion
+
     public void Reset()
     {
         Crc = 0;
@@ -32,6 +41,9 @@ public class ObjectItem
         guid = 0;
         PrimitiveAssetItem = null;
         isAlredayRelease = false;
+        IsSetSceneParent = false;
+        outerCallBack = null;
+        paramList = null;
     }
 }
 
@@ -57,17 +69,22 @@ public class AsyncLoadAssetParam
 
 public class AsyncCallBackPack
 {
-    public OnAsyncObjecFinish callBack;
+    public OnAsyncAssetFinish AssetFinish;
     public object[] paramList;
+
+
+    public OnAsyncObjectFinish ObjectFinishInner;
+    public ObjectItem ObjectItem;
 
     public void Reset()
     {
-        callBack = null;
+        AssetFinish = null;
+        ObjectFinishInner = null;
+        ObjectItem = null;
         paramList = null;
     }
 }
 
-public delegate void OnAsyncObjecFinish(string path, Object obj, params object[] paramList);
 
 public class ResourceManager : Singleton<ResourceManager>
 {
@@ -77,9 +94,9 @@ public class ResourceManager : Singleton<ResourceManager>
     protected List<AsyncLoadAssetParam>[] loadingAssetLists =
         new List<AsyncLoadAssetParam>[(int) LoadResPriority.RES_NUM];
 
-    protected Dictionary<uint, AsyncLoadAssetParam> loadingAssetDic = new Dictionary<uint, AsyncLoadAssetParam>();
+    protected Dictionary<uint, AsyncLoadAssetParam> loadingAssetParamDic = new Dictionary<uint, AsyncLoadAssetParam>();
 
-    protected ClassObjectPool<AsyncLoadAssetParam> asyncLoadResParamPool =
+    protected ClassObjectPool<AsyncLoadAssetParam> asyncLoadResParamPackPool =
         new ClassObjectPool<AsyncLoadAssetParam>(Capacity.AsyncLoadAssetParam);
 
     protected ClassObjectPool<AsyncCallBackPack> asyncCallBackPackPool =
@@ -93,7 +110,7 @@ public class ResourceManager : Singleton<ResourceManager>
         }
 
         startMono = mono;
-        startMono.StartCoroutine(AsyncLoadCor());
+        startMono.StartCoroutine(AsyncLoadCycleCoroutine());
     }
 
     /// <summary>
@@ -181,7 +198,7 @@ public class ResourceManager : Singleton<ResourceManager>
         ReleaseResource(path);
     }
 
-    public bool IsLoadFromAssetBundle = false;
+    public bool IsLoadFromAssetBundle = true;
 
     protected CMapList<AssetItem> unRefAseetItems = new CMapList<AssetItem>();
 
@@ -282,6 +299,7 @@ public class ResourceManager : Singleton<ResourceManager>
             DestroyAssetItem(objectItem.PrimitiveAssetItem, isDestroyCache);
         return true;
     }
+
     //out direct
     public bool ReleaseResource(Object obj, bool isDestroyCache = false)
     {
@@ -404,7 +422,7 @@ public class ResourceManager : Singleton<ResourceManager>
         return item;
     }
 
-    public void AsyncLoadResource(string path, OnAsyncObjecFinish cb, LoadResPriority priority, uint crc = 0,
+    public void AsyncLoadResource(string path, OnAsyncAssetFinish cb, LoadResPriority priority, uint crc = 0,
         params object[] paramList)
     {
         if (crc == 0)
@@ -417,24 +435,24 @@ public class ResourceManager : Singleton<ResourceManager>
             return;
         }
 
-        AsyncLoadAssetParam para = null;
-        if (!loadingAssetDic.TryGetValue(crc, out para))
+        AsyncLoadAssetParam @async = null;
+        if (!loadingAssetParamDic.TryGetValue(crc, out async))
         {
-            para = asyncLoadResParamPool.Spawn();
-            para.Crc = crc;
-            para.Path = path;
-            para.Priority = priority;
-            loadingAssetDic.Add(crc, para);
-            loadingAssetLists[(int) priority].Add(para);
+            async = asyncLoadResParamPackPool.Spawn();
+            async.Crc = crc;
+            async.Path = path;
+            async.Priority = priority;
+            loadingAssetParamDic.Add(crc, async);
+            loadingAssetLists[(int) priority].Add(async);
         }
 
         AsyncCallBackPack callBackPack = asyncCallBackPackPool.Spawn();
-        callBackPack.callBack = cb;
+        callBackPack.AssetFinish = cb;
         callBackPack.paramList = paramList;
-        para.CallBackPacks.Add(callBackPack);
+        async.CallBackPacks.Add(callBackPack);
     }
 
-    IEnumerator AsyncLoadCor()
+    IEnumerator AsyncLoadCycleCoroutine()
     {
         List<AsyncCallBackPack> asyncCallBackPacks = null;
         long lastYieldTime = System.DateTime.Now.Ticks;
@@ -451,28 +469,28 @@ public class ResourceManager : Singleton<ResourceManager>
                 asyncCallBackPacks = asyncLoadAssetParam.CallBackPacks;
 
                 Object obj = null;
-                AssetItem item = null;
+                AssetItem assetItem = null;
 #if UNITY_EDITOR
                 if (!IsLoadFromAssetBundle)
                 {
                     obj = LoadAssetByEditor<Object>(asyncLoadAssetParam.Path);
                     yield return new WaitForSeconds(0.5f);
-                    item = AssetBundleManager.Instance.FindAssetItem(asyncLoadAssetParam.Crc);
+                    assetItem = AssetBundleManager.Instance.FindAssetItem(asyncLoadAssetParam.Crc);
                 }
 #endif
                 if (obj == null)
                 {
-                    item = AssetBundleManager.Instance.LoadAssetItemBundle(asyncLoadAssetParam.Crc);
-                    if (item != null && item.assetBundle != null)
+                    assetItem = AssetBundleManager.Instance.LoadAssetItemBundle(asyncLoadAssetParam.Crc);
+                    if (assetItem != null && assetItem.assetBundle != null)
                     {
                         AssetBundleRequest request = null;
                         if (asyncLoadAssetParam.isSprite)
                         {
-                            request = item.assetBundle.LoadAssetAsync<Sprite>(item.assetName);
+                            request = assetItem.assetBundle.LoadAssetAsync<Sprite>(assetItem.assetName);
                         }
                         else
                         {
-                            request = item.assetBundle.LoadAssetAsync(item.assetName);
+                            request = assetItem.assetBundle.LoadAssetAsync(assetItem.assetName);
                         }
 
                         yield return request;
@@ -482,20 +500,30 @@ public class ResourceManager : Singleton<ResourceManager>
                     }
                 }
 
-                CacheResource(asyncLoadAssetParam.Path, ref item, asyncLoadAssetParam.Crc, obj,
+                CacheResource(asyncLoadAssetParam.Path, ref assetItem, asyncLoadAssetParam.Crc, obj,
                     asyncCallBackPacks.Count);
                 for (int j = 0; j < asyncCallBackPacks.Count; j++)
                 {
-                    AsyncCallBackPack pack = asyncCallBackPacks[i];
-                    pack?.callBack?.Invoke(asyncLoadAssetParam.Path, obj, pack.paramList);
-                    pack?.Reset();
-                    asyncCallBackPackPool.Recycle(pack);
+                    AsyncCallBackPack callBackPack = asyncCallBackPacks[i];
+                    if (callBackPack != null || callBackPack.ObjectItem != null)
+                    {
+                        callBackPack.ObjectItem
+                            .PrimitiveAssetItem = assetItem;
+                        callBackPack.ObjectFinishInner?.Invoke(asyncLoadAssetParam.Path,callBackPack.ObjectItem,callBackPack.ObjectItem.paramList);
+                        //**
+                        callBackPack.ObjectFinishInner = null;
+                        callBackPack.ObjectItem = null;
+
+                    }
+                    callBackPack?.AssetFinish?.Invoke(asyncLoadAssetParam.Path, obj, callBackPack.paramList);
+                    callBackPack?.Reset();
+                    asyncCallBackPackPool.Recycle(callBackPack);
                 }
 
                 asyncCallBackPacks.Clear();
-                loadingAssetDic.Remove(asyncLoadAssetParam.Crc);
+                loadingAssetParamDic.Remove(asyncLoadAssetParam.Crc);
                 asyncLoadAssetParam.Reset();
-                asyncLoadResParamPool.Recycle(asyncLoadAssetParam);
+                asyncLoadResParamPackPool.Recycle(asyncLoadAssetParam);
                 if (System.DateTime.Now.Ticks - lastYieldTime > TimeOut.AsyncLoad)
                 {
                     yield return null;
@@ -511,7 +539,40 @@ public class ResourceManager : Singleton<ResourceManager>
             }
         }
     }
+
+
+    public void AsyncLoadResource(string path, ObjectItem objectItem, OnAsyncObjectFinish callBack,
+        LoadResPriority priority)
+    {
+        AssetItem assetItem = GetCacheAssetItem(objectItem.Crc);
+        if (assetItem != null)
+        {
+            objectItem.PrimitiveAssetItem = assetItem;
+            callBack?.Invoke(path, objectItem);
+            return;
+        }
+
+        AsyncLoadAssetParam asyncLoadAssetParam = null;
+        if (!loadingAssetParamDic.TryGetValue(objectItem.Crc, out asyncLoadAssetParam))
+        {
+            asyncLoadAssetParam = asyncLoadResParamPackPool.Spawn();
+            asyncLoadAssetParam.Crc = objectItem.Crc;
+            asyncLoadAssetParam.Path = path;
+            asyncLoadAssetParam.Priority = priority;
+            loadingAssetParamDic.Add(objectItem.Crc, asyncLoadAssetParam);
+            loadingAssetLists[(int) priority].Add(asyncLoadAssetParam);
+        }
+
+        AsyncCallBackPack callBackPack = asyncCallBackPackPool.Spawn();
+        callBackPack.ObjectFinishInner = callBack;
+        callBackPack.ObjectItem = objectItem;
+        asyncLoadAssetParam.CallBackPacks.Add(callBackPack);
+    }
 }
+
+public delegate void OnAsyncAssetFinish(string path, Object obj, params object[] paramList);
+
+public delegate void OnAsyncObjectFinish(string path, ObjectItem objectItem, params object[] paramList);
 
 #region list
 
