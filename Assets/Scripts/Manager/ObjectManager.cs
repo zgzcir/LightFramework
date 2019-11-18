@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -53,6 +54,27 @@ public class ObjectManager : Singleton<ObjectManager>
         return null;
     }
 
+
+    /// <summary>
+    /// 预加载
+    /// </summary>
+    /// <param name="path">路径</param>
+    /// <param name="count">个数</param>
+    /// <param name="isClear">跳转场景清除</param>
+    public void PreLoadObject(string path,int count,bool isClear=false)
+    {
+        List<GameObject> tempGameObjcets=new List<GameObject>();
+        for (int i = 0; i <count; i++)
+        {
+            GameObject gameObject = InstantiateObject(path, false, isClear);
+            tempGameObjcets.Add(gameObject);
+        }
+        tempGameObjcets.ForEach(g =>
+        {
+            ReleaseObject(g);
+        });
+        tempGameObjcets.Clear();
+    }
     public GameObject InstantiateObject(string path, bool isSetSceneTrans = false, bool isClear = true)
     {
         uint crc = CRC32.GetCRC32(path);
@@ -85,7 +107,7 @@ public class ObjectManager : Singleton<ObjectManager>
         return objectItem.CloneObj;
     }
 
-    public void ReleaseObject(GameObject obj, int maxCacheCount = -1, bool isDestroyPrimitiveCache = false,
+    public void ReleaseObject(GameObject obj,int maxCacheCount = -1, bool isDestroyPrimitiveCache = false, 
         bool recyleParent = true)
     {
         if (obj == null) return;
@@ -150,8 +172,8 @@ public class ObjectManager : Singleton<ObjectManager>
 
     #region async
 
-    public void InstantiateObjectAsync(string path, OnAsyncObjectFinish outerCallBack, LoadResPriority priority,
-        bool isClear = true, bool isSetSceneTrans = false, params object[] paramList)
+    public void InstantiateObjectAsync(string path, OnAsyncFinish outerCallBack, LoadResPriority priority,
+        bool isSetSceneTrans = false, bool isClear = true, params object[] paramList)
     {
         if (string.IsNullOrEmpty(path)) return;
         uint crc = CRC32.GetCRC32(path);
@@ -163,17 +185,23 @@ public class ObjectManager : Singleton<ObjectManager>
                 objectItem.CloneObj.transform.SetParent(SceneTrans, false);
             }
 
-            outerCallBack?.Invoke(path, objectItem, paramList);
+            outerCallBack?.Invoke(path, objectItem.CloneObj, paramList);
             return;
         }
 
         objectItem = objectItemNativePool.Spawn();
+        if (objectItem == null)
+        {
+            Debug.LogError("null");
+        }
+
         objectItem.Crc = crc;
         objectItem.IsSetSceneParent = isSetSceneTrans;
         objectItem.isClear = isClear;
         objectItem.outerCallBack = outerCallBack;
         objectItem.paramList = paramList;
         //调用ResourceManager异步加载接口
+
         ResourceManager.Instance.AsyncLoadResource(path, objectItem, (_path, item, plist) =>
         {
             if (item == null) return;
@@ -199,11 +227,11 @@ public class ObjectManager : Singleton<ObjectManager>
                 int guid = item.CloneObj.GetInstanceID();
                 if (!ObjectItemsInstanceTempDic.ContainsKey(guid))
                 {
-                    ObjectItemsInstanceTempDic.Add(guid,item);
+                    ObjectItemsInstanceTempDic.Add(guid, item);
                 }
-                item.outerCallBack?.Invoke(_path,item,plist);
+
+                item.outerCallBack?.Invoke(_path, item.CloneObj, plist);
             }
-            
         }, priority);
     }
 
