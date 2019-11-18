@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -9,13 +10,21 @@ public class ObjectManager : Singleton<ObjectManager>
 {
     protected Dictionary<Type, object> classPoolDic = new Dictionary<Type, object>();
 
-    //实例对象池
+    //实例对象池 主池
     protected Dictionary<uint, List<ObjectItem>> objectItemsInstancePoolDic = new Dictionary<uint, List<ObjectItem>>();
 
     //类对象池
     protected ClassObjectPool<ObjectItem> objectItemNativePool;
 
+    /// <summary>
+    /// 通过cloneobj guid索引
+    /// </summary>
     protected Dictionary<int, ObjectItem> ObjectItemsInstanceTempDic = new Dictionary<int, ObjectItem>();
+
+    /// <summary>
+    /// 根据guid储存正在加载的object
+    /// </summary>
+    protected Dictionary<long, ObjectItem> asyncLoadingObjectDic = new Dictionary<long, ObjectItem>();
 
     public Transform RecylePoolTrans;
     public Transform SceneTrans;
@@ -27,6 +36,37 @@ public class ObjectManager : Singleton<ObjectManager>
         SceneTrans = sceneTrans;
     }
 
+    public void ClearCache()
+    {
+        List<uint> crcs = new List<uint>();
+        foreach ( uint crc in objectItemsInstancePoolDic.Keys)
+        {
+            var objectItems = objectItemsInstancePoolDic[crc];
+            objectItems.ToList().ForEach(o =>
+            {
+                if (o!=null&&o.isClear)
+                {
+                    objectItems.Remove(o);
+                    o.Reset();
+                    objectItemNativePool.Recycle(o);
+                }
+            });
+            if (objectItems.Count <= 0)
+            {
+                crcs.Add(crc);
+            }
+        }
+
+        for (int i = 0; i < crcs.Count; i++)
+        {
+            uint crc = crcs[i];
+            if (objectItemsInstancePoolDic.ContainsKey(crc))
+            {
+                objectItemsInstancePoolDic.Remove(crc);
+            }
+        }
+        crcs.Clear();
+    }
     protected ObjectItem GetCacheObjectItemFromDic(uint crc)
     {
         List<ObjectItem> objectItems = null;
@@ -54,6 +94,41 @@ public class ObjectManager : Singleton<ObjectManager>
         return null;
     }
 
+    /// <summary>
+    /// 取消异步加载object
+    /// </summary>
+    /// <param name="guid"></param>
+    public void CancelAsyncLoad(long guid)
+    {
+        if (asyncLoadingObjectDic.TryGetValue(guid, out ObjectItem objectItem) &&
+            ResourceManager.Instance.CancelAsyncLoad(objectItem))
+        {
+            asyncLoadingObjectDic.Remove(guid);
+            objectItem.Reset();
+            objectItemNativePool.Recycle(objectItem);
+        }
+    }
+
+    /// <summary>
+    /// 是否正在异步加载
+    /// </summary>
+    /// <param name="guid"></param>
+    /// <returns></returns>
+    public bool IsInAsyncLoading(long guid)
+    {
+        return asyncLoadingObjectDic.ContainsKey(guid);
+    }
+
+    /// <summary>
+    /// 是否该脚本创建
+    /// </summary>
+    /// <returns></returns>
+    public bool IsFrameCreat(GameObject gameObject)
+    {
+        ObjectItem objectItem = ObjectItemsInstanceTempDic[gameObject.GetInstanceID()];
+        return objectItem != null;
+    }
+
 
     /// <summary>
     /// 预加载
@@ -61,20 +136,19 @@ public class ObjectManager : Singleton<ObjectManager>
     /// <param name="path">路径</param>
     /// <param name="count">个数</param>
     /// <param name="isClear">跳转场景清除</param>
-    public void PreLoadObject(string path,int count,bool isClear=false)
+    public void PreLoadObject(string path, int count, bool isClear = false)
     {
-        List<GameObject> tempGameObjcets=new List<GameObject>();
-        for (int i = 0; i <count; i++)
+        List<GameObject> tempGameObjcets = new List<GameObject>();
+        for (int i = 0; i < count; i++)
         {
             GameObject gameObject = InstantiateObject(path, false, isClear);
             tempGameObjcets.Add(gameObject);
         }
-        tempGameObjcets.ForEach(g =>
-        {
-            ReleaseObject(g);
-        });
+
+        tempGameObjcets.ForEach(g => { ReleaseObject(g); });
         tempGameObjcets.Clear();
     }
+
     public GameObject InstantiateObject(string path, bool isSetSceneTrans = false, bool isClear = true)
     {
         uint crc = CRC32.GetCRC32(path);
@@ -107,7 +181,7 @@ public class ObjectManager : Singleton<ObjectManager>
         return objectItem.CloneObj;
     }
 
-    public void ReleaseObject(GameObject obj,int maxCacheCount = -1, bool isDestroyPrimitiveCache = false, 
+    public void ReleaseObject(GameObject obj, int maxCacheCount = -1, bool isDestroyPrimitiveCache = false,
         bool recyleParent = true)
     {
         if (obj == null) return;
@@ -172,10 +246,10 @@ public class ObjectManager : Singleton<ObjectManager>
 
     #region async
 
-    public void InstantiateObjectAsync(string path, OnAsyncFinish outerCallBack, LoadResPriority priority,
+    public long InstantiateObjectAsync(string path, OnAsyncFinish outerCallBack, LoadResPriority priority,
         bool isSetSceneTrans = false, bool isClear = true, params object[] paramList)
     {
-        if (string.IsNullOrEmpty(path)) return;
+        if (string.IsNullOrEmpty(path)) return 0;
         uint crc = CRC32.GetCRC32(path);
         ObjectItem objectItem = GetCacheObjectItemFromDic(crc);
         if (objectItem != null)
@@ -186,7 +260,7 @@ public class ObjectManager : Singleton<ObjectManager>
             }
 
             outerCallBack?.Invoke(path, objectItem.CloneObj, paramList);
-            return;
+            return objectItem.Guid;
         }
 
         objectItem = objectItemNativePool.Spawn();
@@ -195,6 +269,7 @@ public class ObjectManager : Singleton<ObjectManager>
             Debug.LogError("null");
         }
 
+        long guid = ResourceManager.Instance.CreateGuid();
         objectItem.Crc = crc;
         objectItem.IsSetSceneParent = isSetSceneTrans;
         objectItem.isClear = isClear;
@@ -217,6 +292,10 @@ public class ObjectManager : Singleton<ObjectManager>
                 item.CloneObj = Object.Instantiate(item.PrimitiveAssetItem.AssetObject) as GameObject;
             }
 
+//加载完成移除
+            if (asyncLoadingObjectDic.ContainsKey(item.Guid))
+                asyncLoadingObjectDic.Remove(item.Guid);
+
             if (item.CloneObj != null && item.IsSetSceneParent)
             {
                 item.CloneObj.transform.SetParent(SceneTrans);
@@ -233,6 +312,7 @@ public class ObjectManager : Singleton<ObjectManager>
                 item.outerCallBack?.Invoke(_path, item.CloneObj, plist);
             }
         }, priority);
+        return guid;
     }
 
     #endregion
