@@ -100,7 +100,8 @@ public class ResourceManager : Singleton<ResourceManager>
     /// <summary>
     /// 按crc聚合异步加载的参数
     /// </summary>
-    protected Dictionary<uint, AsyncLoadAssetParam> asyncLoadAssetParamDic = new Dictionary<uint, AsyncLoadAssetParam>();
+    protected Dictionary<uint, AsyncLoadAssetParam>
+        asyncLoadAssetParamDic = new Dictionary<uint, AsyncLoadAssetParam>();
 
     protected ClassObjectPool<AsyncLoadAssetParam> asyncLoadResParamPackPool =
         new ClassObjectPool<AsyncLoadAssetParam>(Capacity.AsyncLoadAssetParam);
@@ -153,9 +154,10 @@ public class ResourceManager : Singleton<ResourceManager>
     public bool CancelAsyncLoad(ObjectItem objectItem)
     {
         AsyncLoadAssetParam asyncParam = null;
-        if (asyncLoadAssetParamDic.TryGetValue(objectItem.Crc, out asyncParam)&&loadingAssetLists[(int)asyncParam.Priority].Contains(asyncParam))
+        if (asyncLoadAssetParamDic.TryGetValue(objectItem.Crc, out asyncParam) &&
+            loadingAssetLists[(int) asyncParam.Priority].Contains(asyncParam))
         {
-            for (int i =  asyncParam.CallBackPacks.Count; i >0; i--)
+            for (int i = asyncParam.CallBackPacks.Count; i > 0; i--)
             {
                 AsyncCallBackPack asyncCallbackPack = asyncParam.CallBackPacks[i];
                 //判定objecitem取消
@@ -166,6 +168,7 @@ public class ResourceManager : Singleton<ResourceManager>
                     asyncParam.CallBackPacks.Remove(asyncCallbackPack);
                 }
             }
+
             if (asyncParam.CallBackPacks.Count <= 0)
             {
                 loadingAssetLists[(int) asyncParam.Priority].Remove(asyncParam);
@@ -175,6 +178,7 @@ public class ResourceManager : Singleton<ResourceManager>
                 return true;
             }
         }
+
         return false;
     }
 
@@ -339,10 +343,16 @@ public class ResourceManager : Singleton<ResourceManager>
         return objectItem;
     }
 
-
-    public bool ReleaseResource(ObjectItem objectItem, bool isDestroyCache = false)
+    /// <summary>
+    /// 供ObjectManager使用
+    /// </summary>
+    /// <param name="objectItem"></param>
+    /// <param name="isDestroyCache"></param>
+    /// <returns></returns>
+    public bool ReleaseObjectResource(ObjectItem objectItem, bool isDestroyCache = false)
     {
         if (objectItem == null) return false;
+        //todo unnecessary 
         Object.Destroy(objectItem.CloneObj);
         objectItem.PrimitiveAssetItem.RefCount--;
         if (isDestroyCache)
@@ -448,6 +458,8 @@ public class ResourceManager : Singleton<ResourceManager>
         Resources.UnloadUnusedAssets();
 //        return;
 #endif
+        //todo unnecessary 
+        ObjectManager.Instance.ClearPoolObject(item.crc);
         AssetBundleManager.Instance.ReleaseAsset(item);
 //        item.AssetObject = null;
     }

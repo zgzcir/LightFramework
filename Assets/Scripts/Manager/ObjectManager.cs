@@ -10,7 +10,7 @@ public class ObjectManager : Singleton<ObjectManager>
 {
     protected Dictionary<Type, object> classPoolDic = new Dictionary<Type, object>();
 
-    //实例对象池 主池
+    //实例对象池 主池 crc
     protected Dictionary<uint, List<ObjectItem>> objectItemsInstancePoolDic = new Dictionary<uint, List<ObjectItem>>();
 
     //类对象池
@@ -19,7 +19,7 @@ public class ObjectManager : Singleton<ObjectManager>
     /// <summary>
     /// 通过cloneobj guid索引
     /// </summary>
-    protected Dictionary<int, ObjectItem> ObjectItemsInstanceTempDic = new Dictionary<int, ObjectItem>();
+    protected Dictionary<long, ObjectItem> ObjectItemsInstanceTempDic = new Dictionary<long, ObjectItem>();
 
     /// <summary>
     /// 根据guid储存正在加载的object
@@ -35,18 +35,22 @@ public class ObjectManager : Singleton<ObjectManager>
         RecylePoolTrans = transRecylePool;
         SceneTrans = sceneTrans;
     }
-
+/// <summary>
+/// 清空对象池，保留primitive
+/// </summary>
     public void ClearCache()
     {
         List<uint> crcs = new List<uint>();
-        foreach ( uint crc in objectItemsInstancePoolDic.Keys)
+        foreach (uint crc in objectItemsInstancePoolDic.Keys)
         {
             var objectItems = objectItemsInstancePoolDic[crc];
             objectItems.ToList().ForEach(o =>
             {
-                if (o!=null&&o.isClear)
+                if (o.CloneObj != null && o.isClear)
                 {
+                    Object.Destroy(o.CloneObj);
                     objectItems.Remove(o);
+                      ObjectItemsInstanceTempDic.Remove(o.Guid);
                     o.Reset();
                     objectItemNativePool.Recycle(o);
                 }
@@ -56,7 +60,6 @@ public class ObjectManager : Singleton<ObjectManager>
                 crcs.Add(crc);
             }
         }
-
         for (int i = 0; i < crcs.Count; i++)
         {
             uint crc = crcs[i];
@@ -67,7 +70,34 @@ public class ObjectManager : Singleton<ObjectManager>
         }
         crcs.Clear();
     }
-    protected ObjectItem GetCacheObjectItemFromDic(uint crc)
+
+    /// <summary>
+    /// 清除某资源在对象池中所有对象,保留primitive|供resourcemanager在清除缓存时使用
+    /// </summary>
+    /// <param name="crc"></param>
+    public void ClearPoolObject(uint crc)
+    {
+        if (!objectItemsInstancePoolDic.TryGetValue(crc, out List<ObjectItem> objectItems))
+            return;
+        objectItems.ToList().ForEach(o =>
+        {
+            if (o.isClear)
+            {
+                objectItems.Remove(o);
+                long guid = o.Guid;
+                Object.Destroy(o.CloneObj);
+                ObjectItemsInstanceTempDic.Remove(guid);
+                o.Reset();
+                objectItemNativePool.Recycle(o);
+            }
+        });
+        if (objectItems.Count <= 0)
+        {
+            objectItemsInstancePoolDic.Remove(crc);
+        }
+    }
+
+    protected ObjectItem GetCacheObjectItemFromPoolDic(uint crc)
     {
         List<ObjectItem> objectItems = null;
         if (objectItemsInstancePoolDic.TryGetValue(crc, out objectItems) && objectItems.Count > 0)
@@ -77,13 +107,13 @@ public class ObjectManager : Singleton<ObjectManager>
             var item = objectItems[0];
             objectItems.RemoveAt(0);
             GameObject gameObject = item.CloneObj;
-            if (!ReferenceEquals(gameObject, null))
+            if (gameObject != null)
             {
                 item.isAlredayRelease = false;
 #if UNITY_EDITOR
-                if (gameObject.name.EndsWith("(Recyle)"))
+                if (gameObject.name.EndsWith("(Recycle)"))
                 {
-                    gameObject.name.Replace("(Recyle)", "");
+                    gameObject.name = gameObject.name.Replace("(Recycle)", "");
                 }
 #endif
             }
@@ -152,7 +182,7 @@ public class ObjectManager : Singleton<ObjectManager>
     public GameObject InstantiateObject(string path, bool isSetSceneTrans = false, bool isClear = true)
     {
         uint crc = CRC32.GetCRC32(path);
-        ObjectItem objectItem = GetCacheObjectItemFromDic(crc);
+        ObjectItem objectItem = GetCacheObjectItemFromPoolDic(crc);
         if (ReferenceEquals(objectItem, null))
         {
             objectItem = objectItemNativePool.Spawn();
@@ -199,12 +229,12 @@ public class ObjectManager : Singleton<ObjectManager>
             return;
         }
 #if UNITY_EDITOR
-        obj.name += "(Recyle)";
+        obj.name += "(Recycle)";
 #endif
         if (maxCacheCount == 0)
         {
             ObjectItemsInstanceTempDic.Remove(guid);
-            ResourceManager.Instance.ReleaseResource(objectItem, isDestroyPrimitiveCache);
+            ResourceManager.Instance.ReleaseObjectResource(objectItem, isDestroyPrimitiveCache);
             objectItem.Reset();
             objectItemNativePool.Recycle(objectItem);
         }
@@ -237,7 +267,7 @@ public class ObjectManager : Singleton<ObjectManager>
             else
             {
                 ObjectItemsInstanceTempDic.Remove(guid);
-                ResourceManager.Instance.ReleaseResource(objectItem, isDestroyPrimitiveCache);
+                ResourceManager.Instance.ReleaseObjectResource(objectItem, isDestroyPrimitiveCache);
                 objectItem.Reset();
                 objectItemNativePool.Recycle(objectItem);
             }
@@ -251,7 +281,7 @@ public class ObjectManager : Singleton<ObjectManager>
     {
         if (string.IsNullOrEmpty(path)) return 0;
         uint crc = CRC32.GetCRC32(path);
-        ObjectItem objectItem = GetCacheObjectItemFromDic(crc);
+        ObjectItem objectItem = GetCacheObjectItemFromPoolDic(crc);
         if (objectItem != null)
         {
             if (isSetSceneTrans)
@@ -295,7 +325,6 @@ public class ObjectManager : Singleton<ObjectManager>
 //加载完成移除
             if (asyncLoadingObjectDic.ContainsKey(item.Guid))
                 asyncLoadingObjectDic.Remove(item.Guid);
-
             if (item.CloneObj != null && item.IsSetSceneParent)
             {
                 item.CloneObj.transform.SetParent(SceneTrans);
@@ -303,10 +332,13 @@ public class ObjectManager : Singleton<ObjectManager>
 
             if (item.outerCallBack != null)
             {
-                int guid = item.CloneObj.GetInstanceID();
-                if (!ObjectItemsInstanceTempDic.ContainsKey(guid))
+                if (item.CloneObj != null)
                 {
-                    ObjectItemsInstanceTempDic.Add(guid, item);
+                    int _guid = item.CloneObj.GetInstanceID();
+                    if (!ObjectItemsInstanceTempDic.ContainsKey(_guid))
+                    {
+                        ObjectItemsInstanceTempDic.Add(_guid, item);
+                    }
                 }
 
                 item.outerCallBack?.Invoke(_path, item.CloneObj, plist);
