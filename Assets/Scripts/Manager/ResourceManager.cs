@@ -458,7 +458,7 @@ public class ResourceManager : Singleton<ResourceManager>
         Resources.UnloadUnusedAssets();
 //        return;
 #endif
-        //todo unnecessary 
+        //清除对象池中其他同crc的object
         ObjectManager.Instance.ClearPoolObject(item.crc);
         AssetBundleManager.Instance.ReleaseAsset(item);
 //        item.AssetObject = null;

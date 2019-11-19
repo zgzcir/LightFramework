@@ -85,6 +85,7 @@ public class ObjectManager : Singleton<ObjectManager>
             {
                 objectItems.Remove(o);
                 long guid = o.Guid;
+                //todo unnecessary 
                 Object.Destroy(o.CloneObj);
                 ObjectItemsInstanceTempDic.Remove(guid);
                 o.Reset();
