@@ -33,6 +33,7 @@ public class ObjectItem
 
     #endregion
 
+    public OfflineData OfflineData;
     public void Reset()
     {
         Crc = 0;
@@ -44,6 +45,7 @@ public class ObjectItem
         IsSetSceneParent = false;
         outerCallBack = null;
         paramList = null;
+        OfflineData = null;
     }
 }
 

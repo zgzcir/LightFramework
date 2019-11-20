@@ -6,7 +6,7 @@ using System.Reflection;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-public class ObjectManager : Singleton<ObjectManager>
+public partial class ObjectManager : Singleton<ObjectManager>
 {
     protected Dictionary<Type, object> classPoolDic = new Dictionary<Type, object>();
 
@@ -110,6 +110,11 @@ public class ObjectManager : Singleton<ObjectManager>
             GameObject gameObject = item.CloneObj;
             if (gameObject != null)
             {
+                if (item.OfflineData != null)
+                {
+                    item.OfflineData.ResetProp();
+                }
+                
                 item.isAlredayRelease = false;
 #if UNITY_EDITOR
                 if (gameObject.name.EndsWith("(Recycle)"))
@@ -118,10 +123,8 @@ public class ObjectManager : Singleton<ObjectManager>
                 }
 #endif
             }
-
             return item;
         }
-
         return null;
     }
 
@@ -195,6 +198,7 @@ public class ObjectManager : Singleton<ObjectManager>
             if (PrimitiveObject != null)
             {
                 objectItem.CloneObj = GameObject.Instantiate(PrimitiveObject) as GameObject;
+                objectItem.OfflineData = objectItem.CloneObj.GetComponent<OfflineData>();
             }
         }
 
@@ -321,6 +325,7 @@ public class ObjectManager : Singleton<ObjectManager>
             {
                 //实例化
                 item.CloneObj = Object.Instantiate(item.PrimitiveAssetItem.AssetObject) as GameObject;
+                objectItem.OfflineData = item.CloneObj.GetComponent<OfflineData>();
             }
 
 //加载完成移除

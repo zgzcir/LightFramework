@@ -5,7 +5,7 @@ using UnityEngine;
 public partial class ObjectManager
 {
     /// <summary>
-    /// 节省GetComponent开销
+    ///使用offlinedata节省GetComponent开销来获取组件
     /// </summary>
     /// <param name="gameObject"></param>
     /// <returns></returns>
@@ -16,6 +16,7 @@ public partial class ObjectManager
         {
             offlineData = objectItem.OfflineData;
         }
+
         return offlineData;
     }
 }

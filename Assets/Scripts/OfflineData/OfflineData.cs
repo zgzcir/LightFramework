@@ -11,13 +11,13 @@ public class OfflineData : MonoBehaviour
     /// </summary>
     public Transform[] AllNodes;
 
-    public int[] EachNodeChildCount;
+    public int[] NodesChildCount;
 
-    public bool[] EachNodeActive;
+    public bool[] NodesActive;
 
-    public Vector3[] EachNodePosition;
-    public Vector3[] EachNodeScale;
-    public Quaternion[] EachNodeRotation;
+    public Vector3[] NodesPosition;
+    public Vector3[] NodesScale;
+    public Quaternion[] NodesRotation;
 
     /// <summary>
     /// 还原属性
@@ -30,10 +30,11 @@ public class OfflineData : MonoBehaviour
             Transform tempNode = AllNodes[i];
             if (tempNode != null)
             {
-                tempNode.localPosition = EachNodePosition[i];
-                tempNode.localRotation = EachNodeRotation[i];
-                tempNode.localScale = EachNodeScale[i];
-                if (EachNodeActive[i])
+                tempNode.localPosition = NodesPosition[i];
+                tempNode.localRotation = NodesRotation[i];
+                tempNode.localScale = NodesScale[i];
+                
+                if (NodesActive[i])
                 {
                     if (!tempNode.gameObject.activeSelf)
                     {
@@ -48,10 +49,10 @@ public class OfflineData : MonoBehaviour
                     }
                 }
 
-                if (tempNode.childCount > EachNodeChildCount[i])
+                if (tempNode.childCount > NodesChildCount[i])
                 {
                     int childCount = tempNode.childCount;
-                    for (int j = EachNodeChildCount[i]; j < childCount; j++)
+                    for (int j = NodesChildCount[i]; j < childCount; j++)
                     {
                         GameObject tempObj = tempNode.GetChild(j).gameObject;
                         if (!ObjectManager.Instance.IsFrameCreat(tempObj))
@@ -73,19 +74,21 @@ public class OfflineData : MonoBehaviour
         Rigidbody = gameObject.GetComponentInChildren<Rigidbody>(true);
         AllNodes = gameObject.GetComponentsInChildren<Transform>(true);
         int allNodesCount = AllNodes.Length;
-        EachNodeChildCount = new int[allNodesCount];
-        EachNodeActive = new bool[allNodesCount];
-        EachNodePosition = new Vector3[allNodesCount];
-        EachNodeScale = new Vector3[allNodesCount];
-        EachNodeRotation = new Quaternion[allNodesCount];
+        NodesChildCount = new int[allNodesCount];
+        NodesActive = new bool[allNodesCount];
+        NodesPosition = new Vector3[allNodesCount];
+        NodesScale = new Vector3[allNodesCount];
+        NodesRotation = new Quaternion[allNodesCount];
         for (int i = 0; i < allNodesCount; i++)
         {
             Transform tempNode = AllNodes[i];
-            EachNodeChildCount[i] = tempNode.childCount;
-            EachNodeActive[i] = tempNode.gameObject.activeSelf;
-            EachNodePosition[i] = tempNode.localPosition;
-            EachNodeRotation[i] = tempNode.localRotation;
-            EachNodeScale[i] = tempNode.localScale;
+            NodesChildCount[i] = tempNode.childCount;
+            NodesActive[i] = tempNode.gameObject.activeSelf;
+            NodesPosition[i] = tempNode.localPosition;
+            NodesRotation[i] = tempNode.localRotation;
+            NodesScale[i] = tempNode.localScale;
         }
     }
+
+
 }

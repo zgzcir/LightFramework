@@ -12,9 +12,8 @@ public static class PathDefine
         "Assets" + BytesPath;
     public static readonly string BytesFullPath =
         Application.dataPath + BytesPath;
-
-    public static readonly string UIPrefabPath = "";
-
+    public static readonly string UIPrefabPath = "Assets/GameData/Prefabs/UGUI";
+    public static readonly string EffectPrefabPath = "Assets/GameData/Prefabs/Effects";
 }
 
 public static class NameDefine

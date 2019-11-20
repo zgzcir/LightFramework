@@ -16,7 +16,60 @@ public class UIOfflineData : OfflineData
 
     public override void ResetProp()
     {
-        base.ResetProp();
+        int count = AllNodes.Length;
+        for (int i = 0; i <count; i++)
+        {
+            RectTransform rectTransform = AllNodes[i] as RectTransform;
+            if (rectTransform != null)
+            {
+                rectTransform.localPosition = NodesPosition[i];
+                rectTransform.localRotation = NodesRotation[i];
+                rectTransform.localScale = NodesScale[i];
+                rectTransform.anchorMax = AnchorMaxs[i];
+                rectTransform.anchorMin = AnchorMins[i];
+                rectTransform.pivot = Pivots[i];
+                rectTransform.sizeDelta = Pivots[i];
+                rectTransform.anchoredPosition = AnchoredPositions[i];
+                    
+                if (NodesActive[i])
+                {
+                    if (!rectTransform.gameObject.activeSelf)
+                    {
+                        rectTransform.gameObject.SetActive(true);
+                    }
+                }
+                else
+                {
+                    if (rectTransform.gameObject.activeSelf)
+                    {
+                        rectTransform.gameObject.SetActive(false);
+                    }
+                }
+                
+                if (rectTransform.childCount > NodesChildCount[i])
+                {
+                    int childCount = rectTransform.childCount;
+                    for (int j = NodesChildCount[i]; j < childCount; j++)
+                    {
+                        GameObject tempObj = rectTransform.GetChild(j).gameObject;
+                        if (!ObjectManager.Instance.IsFrameCreat(tempObj))
+                        {
+                            Destroy(tempObj);
+                        }
+                    }
+                }
+            }
+            
+           
+
+        } 
+
+        int particleCount = ParticleSystems.Length;
+        for (int i = 0; i < particleCount; i++)
+        {
+            ParticleSystems[i].Clear(true);
+            ParticleSystems[i].Play();
+        }
     }
 
     public override void BindData()
@@ -34,11 +87,11 @@ public class UIOfflineData : OfflineData
             }
         }
 
-        EachNodeChildCount = new int[allNodesCount];
-        EachNodeActive = new bool[allNodesCount];
-        EachNodePosition = new Vector3[allNodesCount];
-        EachNodeScale = new Vector3[allNodesCount];
-        EachNodeRotation = new Quaternion[allNodesCount];
+        NodesChildCount = new int[allNodesCount];
+        NodesActive = new bool[allNodesCount];
+        NodesPosition = new Vector3[allNodesCount];
+        NodesScale = new Vector3[allNodesCount];
+        NodesRotation = new Quaternion[allNodesCount];
 
         AnchorMaxs = new Vector2[allNodesCount];
         AnchorMins = new Vector2[allNodesCount];
@@ -48,11 +101,11 @@ public class UIOfflineData : OfflineData
         for (int i = 0; i < allNodesCount; i++)
         {
             RectTransform tempNode = allNodes[i] as RectTransform;
-            EachNodeChildCount[i] = tempNode.childCount;
-            EachNodeActive[i] = tempNode.gameObject.activeSelf;
-            EachNodePosition[i] = tempNode.localPosition;
-            EachNodeRotation[i] = tempNode.localRotation;
-            EachNodeScale[i] = tempNode.localScale;
+            NodesChildCount[i] = tempNode.childCount;
+            NodesActive[i] = tempNode.gameObject.activeSelf;
+            NodesPosition[i] = tempNode.localPosition;
+            NodesRotation[i] = tempNode.localRotation;
+            NodesScale[i] = tempNode.localScale;
             AnchorMaxs[i] = tempNode.anchorMax;
             AnchorMins[i] = tempNode.anchorMin;
             Pivots[i] = tempNode.pivot;
