@@ -29,7 +29,7 @@ LoadAseetBundle();
         AssetBundle assetBundle = AssetBundle.LoadFromFile(Application.streamingAssetsPath + "/loadconfig");
         MemoryStream ms = new MemoryStream(assetBundle.LoadAsset<TextAsset>("AssetBundleLoadConfig").bytes);
         BinaryFormatter bf = new BinaryFormatter();
-        AsseBundleLoadConfig loadConfig = (AsseBundleLoadConfig) bf.Deserialize(ms);
+        AssetBundleLoadConfig loadConfig = (AssetBundleLoadConfig) bf.Deserialize(ms);
         ms.Close();
 
         string path = "Assets/GameData/Prefabs/Attack.prefab";
@@ -50,7 +50,7 @@ LoadAseetBundle();
 
         if (abBase != null)
         {
-            AssetBundle ab = AssetBundle.LoadFromFile(Application.streamingAssetsPath + "/" + abBase.ABName);
+            AssetBundle ab = AssetBundle.LoadFromFile(Application.streamingAssetsPath + "/" + abBase.AssetBundleName);
             GameObject go = Instantiate(ab.LoadAsset<GameObject>(abBase.AssetName));
         }
     }

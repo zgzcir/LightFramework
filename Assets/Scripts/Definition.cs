@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-public static class PathDefine
+public  static class PathDefine
 {
     public static readonly string ABBuildConfig = "Assets/Editor/ABConfig.asset";
     public static readonly string BundleTargetPath = Application.streamingAssetsPath;

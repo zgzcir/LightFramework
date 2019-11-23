@@ -115,7 +115,7 @@ public partial class ObjectManager : Singleton<ObjectManager>
                     item.OfflineData.ResetProp();
                 }
                 
-                item.isAlredayRelease = false;
+                item.isAlreadyRelease = false;
 #if UNITY_EDITOR
                 if (gameObject.name.EndsWith("(Recycle)"))
                 {
@@ -228,7 +228,7 @@ public partial class ObjectManager : Singleton<ObjectManager>
             return;
         }
 
-        if (objectItem.isAlredayRelease)
+        if (objectItem.isAlreadyRelease)
         {
             Debug.LogError(obj.name + "该对象已放入对象池");
             return;
@@ -250,7 +250,6 @@ public partial class ObjectManager : Singleton<ObjectManager>
                 objectItems = new List<ObjectItem>(); //TODO
                 objectItemsInstancePoolDic.Add(objectItem.Crc, objectItems);
             }
-
             if (objectItem.CloneObj)
             {
                 if (recyleParent)
@@ -262,11 +261,11 @@ public partial class ObjectManager : Singleton<ObjectManager>
                     objectItem.CloneObj.SetActive(false);
                 }
             }
-
+            //无限缓存
             if (maxCacheCount < 0 || objectItems.Count < maxCacheCount)
             {
                 objectItems.Add(objectItem);
-                objectItem.isAlredayRelease = true;
+                objectItem.isAlreadyRelease = true;
                 ResourceManager.Instance.DecreaseResourceRef(objectItem);
             }
             else

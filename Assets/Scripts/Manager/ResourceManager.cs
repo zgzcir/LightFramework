@@ -23,7 +23,7 @@ public class ObjectItem
     public bool isClear = true;
 
     public long Guid;
-    public bool isAlredayRelease = false;
+    public bool isAlreadyRelease = false;
 
     #region async
 
@@ -41,7 +41,7 @@ public class ObjectItem
         isClear = true;
         Guid = 0;
         PrimitiveAssetItem = null;
-        isAlredayRelease = false;
+        isAlreadyRelease = false;
         IsSetSceneParent = false;
         outerCallBack = null;
         paramList = null;
