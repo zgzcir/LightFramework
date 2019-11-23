@@ -255,7 +255,7 @@ public class ResourceManager : Singleton<ResourceManager>
         ReleaseResource(path);
     }
 
-    public bool IsLoadFromAssetBundle = true;
+    public bool IsLoadFromAssetBundle = false;
 
     protected CMapList<AssetItem> unRefAseetItems = new CMapList<AssetItem>();
 
@@ -280,7 +280,7 @@ public class ResourceManager : Singleton<ResourceManager>
         if (!IsLoadFromAssetBundle)
         {
             item = AssetBundleManager.Instance.FindAssetItem(crc);
-            if (item.AssetObject != null)
+            if (item!=null&&item.AssetObject != null)
                 obj = item.AssetObject as T;
             else
                 obj = LoadAssetByEditor<T>(path);
@@ -321,10 +321,16 @@ public class ResourceManager : Singleton<ResourceManager>
         if (!IsLoadFromAssetBundle)
         {
             assetItem = AssetBundleManager.Instance.FindAssetItem(crc);
-            if (assetItem.AssetObject != null)
+            if (assetItem!=null&&assetItem.AssetObject != null)
                 obj = assetItem.AssetObject;
             else
+            {
+//                if (assetItem == null)
+//                {
+//                    assetItem=new AssetItem();
+//                }
                 obj = LoadAssetByEditor<Object>(path);
+            }
         }
 #endif
         if (obj == null)

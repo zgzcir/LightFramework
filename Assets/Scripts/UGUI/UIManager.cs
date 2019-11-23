@@ -22,7 +22,7 @@ public class UIManager : Singleton<UIManager>
     /// <summary>
     /// ui名字-类型注册字典
     /// </summary>
-    private Dictionary<string, Type> RegesiterDic = new Dictionary<string, Type>();
+    private Dictionary<string, Type> RegesiterDic = new Dictionary<string, System.Type>();
 
     private Dictionary<string, Window> OpenedWindowDic = new Dictionary<string, Window>();
 
@@ -116,9 +116,10 @@ public class UIManager : Singleton<UIManager>
         Window window = FindWndByName<Window>(name);
         if (window == null)
         {
-            if (RegesiterDic.TryGetValue(name, out Type type))
+            System.Type tp = null;
+            if (RegesiterDic.TryGetValue(name, out tp))
             {
-                window = Activator.CreateInstance(type) as Window;
+                window = System.Activator.CreateInstance(tp) as Window;
             }
             else
             {
@@ -128,7 +129,7 @@ public class UIManager : Singleton<UIManager>
 
             //todo optimazation
             GameObject windowObject =
-                ObjectManager.Instance.InstantiateObject(UIManagerDefinition.UIPrefabPathPrefix + name, false, false);
+                ObjectManager.Instance.InstantiateObject(UIDefinition.UIPrefabPathPrefix + name, false, false);
             if (windowObject == null)
             {
                 Debug.LogError($"创建窗口失败:{name}");
@@ -144,7 +145,7 @@ public class UIManager : Singleton<UIManager>
             window.Transform = windowObject.transform;
 
             window.Awake(paramList);
-            window.Transform.SetParent(uiRoot);
+            window.Transform.SetParent(wndRoot,false);
             window.Name = name;
             ShowWindow(window, isTop, paramList);
         }

@@ -12,8 +12,8 @@ public class Window
     public GameObject GameObject { get; set; }
     public Transform Transform { get; set; }
 
-    protected List<Button> buttons;
-    protected List<Toggle> toggles;
+    protected List<Button> buttons=new List<Button>();
+    protected List<Toggle> toggles=new List<Toggle>();
 
     public virtual void Awake(params object[] paramList)
     {
@@ -88,17 +88,17 @@ public class Window
             if (o != null)
             {
                 Sprite sp = o as Sprite;
-                Image image = list[0] as Image;
-                bool isSetNativeSize = (bool) list[1];
-                if (image.sprite != null)
+                Image img = list[0] as Image;
+                bool isSetNative = (bool) list[1];
+                if (img.sprite != null)
                 {
-                    image.sprite = null;
+                    img.sprite = null;
                 }
 
-                image.sprite = sp;
-                if (isSetNativeSize)
+                img.sprite = sp;
+                if (isSetNative)
                 {
-                    image.SetNativeSize();
+                    img.SetNativeSize();
                 }
             }
         }, LoadResPriority.RES_MIDDLE, image, isSetNativeSize);
