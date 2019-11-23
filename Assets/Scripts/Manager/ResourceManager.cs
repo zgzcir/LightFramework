@@ -34,6 +34,7 @@ public class ObjectItem
     #endregion
 
     public OfflineData OfflineData;
+
     public void Reset()
     {
         Crc = 0;
@@ -486,6 +487,12 @@ public class ResourceManager : Singleton<ResourceManager>
         return item;
     }
 
+    public void AsyncLoadResource(string path, OnAsyncFinish cb, LoadResPriority priority, params object[] paramList
+    )
+    {
+        AsyncLoadResource(path, cb, priority, 0, paramList);
+    }
+
     public void AsyncLoadResource(string path, OnAsyncFinish cb, LoadResPriority priority, uint crc = 0,
         params object[] paramList)
     {
@@ -604,7 +611,6 @@ public class ResourceManager : Singleton<ResourceManager>
             }
         }
     }
-
 
     public void AsyncLoadResource(string path, ObjectItem objectItem, OnAsyncPrimitiveAssetFinish innerCallBack,
         LoadResPriority priority)

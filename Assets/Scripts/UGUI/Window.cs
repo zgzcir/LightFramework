@@ -45,6 +45,64 @@ public class Window
         return true;
     }
 
+    /// <summary>
+    /// 替换Sprite
+    /// </summary>
+    /// <param name="path"></param>
+    /// <param name="image"></param>
+    /// <param name="isSetNativeSize"></param>
+    public bool ChangeImageSprite(string path, Image image, bool isSetNativeSize = false)
+    {
+        if (image == null) return false;
+        Sprite sp = ResourceManager.Instance.LoadResource<Sprite>(path);
+        if (sp != null)
+        {
+            if (image.sprite != null)
+            {
+                image.sprite = null;
+            }
+
+            image.sprite = sp;
+            if (isSetNativeSize)
+            {
+                image.SetNativeSize();
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// 异步替换Sprite
+    /// </summary>
+    /// <param name="path"></param>
+    /// <param name="image"></param>
+    /// <param name="isSetNativeSize"></param>
+    public void ChangeImageSpriteAsync(string path, Image image, bool isSetNativeSize = false)
+    {
+        if (image == null) return;
+        ResourceManager.Instance.AsyncLoadResource(path, (s, o, list) =>
+        {
+            if (o != null)
+            {
+                Sprite sp = o as Sprite;
+                Image image = list[0] as Image;
+                bool isSetNativeSize = (bool) list[1];
+                if (image.sprite != null)
+                {
+                    image.sprite = null;
+                }
+
+                image.sprite = sp;
+                if (isSetNativeSize)
+                {
+                    image.SetNativeSize();
+                }
+            }
+        }, LoadResPriority.RES_MIDDLE, image, isSetNativeSize);
+    }
 
     #region events
 
