@@ -142,10 +142,10 @@ public class ResourceManager : Singleton<ResourceManager>
         List<AssetItem> items = new List<AssetItem>();
         foreach (var item in AssetDic.Values)
         {
-            if (item.IsClear) items.Add(item);
+            if (item.IsClear) 
+                items.Add(item);
         }
-
-        items.ForEach(i => { DestroyAssetItem(i, true); });
+        items.ForEach(i => { DestroyAsset(i, true); });
         items.Clear();
     }
 
@@ -252,9 +252,8 @@ public class ResourceManager : Singleton<ResourceManager>
         CacheResource(path, ref item, crc, obj);
         //跳场景
         item.IsClear = false;
-        ReleaseResource(path);
+        ReleaseResource(path, false);
     }
-
     public bool IsLoadFromAssetBundle = false;
 
     protected CMapList<AssetItem> unRefAseetItems = new CMapList<AssetItem>();
@@ -280,7 +279,7 @@ public class ResourceManager : Singleton<ResourceManager>
         if (!IsLoadFromAssetBundle)
         {
             item = AssetBundleManager.Instance.FindAssetItem(crc);
-            if (item!=null&&item.AssetObject != null)
+            if (item != null && item.AssetObject != null)
                 obj = item.AssetObject as T;
             else
                 obj = LoadAssetByEditor<T>(path);
@@ -321,7 +320,7 @@ public class ResourceManager : Singleton<ResourceManager>
         if (!IsLoadFromAssetBundle)
         {
             assetItem = AssetBundleManager.Instance.FindAssetItem(crc);
-            if (assetItem!=null&&assetItem.AssetObject != null)
+            if (assetItem != null && assetItem.AssetObject != null)
                 obj = assetItem.AssetObject;
             else
             {
@@ -361,11 +360,10 @@ public class ResourceManager : Singleton<ResourceManager>
     public bool ReleaseObjectResource(ObjectItem objectItem, bool isDestroyCache = false)
     {
         if (objectItem == null) return false;
-        //todo unnecessary 
         Object.Destroy(objectItem.CloneObj);
         objectItem.PrimitiveAssetItem.RefCount--;
         if (isDestroyCache)
-            DestroyAssetItem(objectItem.PrimitiveAssetItem, isDestroyCache);
+            DestroyAsset(objectItem.PrimitiveAssetItem, isDestroyCache);
         return true;
     }
 
@@ -390,7 +388,7 @@ public class ResourceManager : Singleton<ResourceManager>
 
         item.RefCount--;
         if (isDestroyCache)
-            DestroyAssetItem(item, isDestroyCache);
+            DestroyAsset(item, isDestroyCache);
         return true;
     }
 
@@ -407,7 +405,7 @@ public class ResourceManager : Singleton<ResourceManager>
         }
 
         item.RefCount--;
-        DestroyAssetItem(item, isDestroyCache);
+        DestroyAsset(item, isDestroyCache);
         return true;
     }
 
@@ -439,7 +437,7 @@ public class ResourceManager : Singleton<ResourceManager>
         }
     }
 
-    private void WashOut()
+    private void  WashOut()
     {
 //        {
 //            if (unRefAseetItems.Size() <= 0)
@@ -451,25 +449,31 @@ public class ResourceManager : Singleton<ResourceManager>
     }
 
 //字典去除 卸载bundle
-    private void DestroyAssetItem(AssetItem item, bool destroyCache = false)
+    private void DestroyAsset(AssetItem item, bool destroyCache = false)
     {
-//        if (!destroyCache)
-//        {
-////            unRefAseetItems.InsertToHead(item);
-//            return;
-//        }
-
         if (item == null || item.RefCount > 0)
             return;
+        if (!destroyCache)
+        {
+             unRefAseetItems.InsertToHead(item);
+            return;
+        }
+
+//error
         if (!AssetDic.Remove(item.crc))
             return;
+        
+        //清除对象池中其他同crc的object
+        ObjectManager.Instance.ClearPoolObject(item.crc);
+        AssetBundleManager.Instance.ReleaseAssetBundle(item);
 #if UNITY_EDITOR
+        if (item.AssetObject!=null)
+        {
+            item.AssetObject = null;
+        }
         Resources.UnloadUnusedAssets();
 //        return;
 #endif
-        //清除对象池中其他同crc的object
-        ObjectManager.Instance.ClearPoolObject(item.crc);
-        AssetBundleManager.Instance.ReleaseAsset(item);
 //        item.AssetObject = null;
     }
 #if UNITY_EDITOR

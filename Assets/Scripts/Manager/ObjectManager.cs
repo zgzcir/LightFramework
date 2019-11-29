@@ -35,9 +35,10 @@ public partial class ObjectManager : Singleton<ObjectManager>
         RecylePoolTrans = transRecylePool;
         SceneTrans = sceneTrans;
     }
-/// <summary>
-/// 清空对象池，保留primitive
-/// </summary>
+
+    /// <summary>
+    /// 清空对象池，保留primitive
+    /// </summary>
     public void ClearCache()
     {
         List<uint> crcs = new List<uint>();
@@ -50,7 +51,7 @@ public partial class ObjectManager : Singleton<ObjectManager>
                 {
                     Object.Destroy(o.CloneObj);
                     objectItems.Remove(o);
-                      ObjectItemsInstanceTempDic.Remove(o.Guid);
+                    ObjectItemsInstanceTempDic.Remove(o.Guid);
                     o.Reset();
                     objectItemNativePool.Recycle(o);
                 }
@@ -60,6 +61,7 @@ public partial class ObjectManager : Singleton<ObjectManager>
                 crcs.Add(crc);
             }
         }
+
         for (int i = 0; i < crcs.Count; i++)
         {
             uint crc = crcs[i];
@@ -68,6 +70,7 @@ public partial class ObjectManager : Singleton<ObjectManager>
                 objectItemsInstancePoolDic.Remove(crc);
             }
         }
+
         crcs.Clear();
     }
 
@@ -114,7 +117,7 @@ public partial class ObjectManager : Singleton<ObjectManager>
                 {
                     item.OfflineData.ResetProp();
                 }
-                
+
                 item.isAlreadyRelease = false;
 #if UNITY_EDITOR
                 if (gameObject.name.EndsWith("(Recycle)"))
@@ -123,8 +126,10 @@ public partial class ObjectManager : Singleton<ObjectManager>
                 }
 #endif
             }
+
             return item;
         }
+
         return null;
     }
 
@@ -164,13 +169,7 @@ public partial class ObjectManager : Singleton<ObjectManager>
     }
 
 
-    /// <summary>
-    /// 预加载
-    /// </summary>
-    /// <param name="path">路径</param>
-    /// <param name="count">个数</param>
-    /// <param name="isClear">跳转场景清除</param>
-    public void PreLoadObject(string path, int count, bool isClear = false)
+    public void PreLoadObject(string path, int count = 1, bool isClear = false)
     {
         List<GameObject> tempGameObjcets = new List<GameObject>();
         for (int i = 0; i < count; i++)
@@ -194,10 +193,10 @@ public partial class ObjectManager : Singleton<ObjectManager>
             objectItem.isClear = isClear;
             objectItem = ResourceManager.Instance.LoadPrimitiveAssetItem(path, objectItem);
 
-            var PrimitiveObject = objectItem.PrimitiveAssetItem.AssetObject;
-            if (PrimitiveObject != null)
+            var PrimitiveAssetObject = objectItem.PrimitiveAssetItem.AssetObject;
+            if (PrimitiveAssetObject != null)
             {
-                objectItem.CloneObj = GameObject.Instantiate(PrimitiveObject) as GameObject;
+                objectItem.CloneObj = GameObject.Instantiate(PrimitiveAssetObject) as GameObject;
                 objectItem.OfflineData = objectItem.CloneObj.GetComponent<OfflineData>();
             }
         }
@@ -261,6 +260,7 @@ public partial class ObjectManager : Singleton<ObjectManager>
                     objectItem.CloneObj.SetActive(false);
                 }
             }
+
             //无限缓存
             if (maxCacheCount < 0 || objectItems.Count < maxCacheCount)
             {
