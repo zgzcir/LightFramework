@@ -1,0 +1,15 @@
+{
+    "name": "Experiment",
+    "references": [
+        "GUID:8433ebf8c3f2cf94fbaae4e55261090e"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
