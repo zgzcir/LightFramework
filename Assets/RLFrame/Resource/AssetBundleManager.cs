@@ -113,13 +113,14 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
                 UnLoadAssetBundle(dependentBundles[i]);
             }
         }
+
         UnLoadAssetBundle(assetItem.assetBundleName);
     }
 
     private void UnLoadAssetBundle(string name)
     {
         uint crc = CRC32.GetCRC32(name);
-        AssetBundleItem item ;
+        AssetBundleItem item;
         if (AssetBundleItemDic.TryGetValue(crc, out item) && item != null)
         {
             item.RefCount--;
@@ -134,7 +135,19 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
     }
     public AssetItem FindAssetItem(uint crc)
     {
-        return AssetItemDic[crc];
+        if (AssetItemDic.TryGetValue(crc, out AssetItem assetItem))
+        {
+            return assetItem;
+        }
+
+#if UNITY_EDITOR
+        assetItem = new AssetItem();
+        assetItem.crc = crc;
+        AssetItemDic.Add(crc, assetItem);
+        return assetItem;
+#endif
+        return null;
+
     }
 }
 
@@ -158,9 +171,7 @@ public class AssetItem
     public List<string> assetDependentBundles;
     public AssetBundle assetBundle;
 
-    
-        
-    
+
     public Object AssetObject;
     public int guid;
     public float lastUseTime;
@@ -174,7 +185,9 @@ public class AssetItem
             refCount = value;
             if (refCount < 0)
             {
-                Debug.LogError("refcount < 0"+refCount+" ,"+AssetObject!=null?AssetObject.name:"name is null");
+                Debug.LogError("refcount < 0" + refCount + " ," + AssetObject != null
+                    ? AssetObject.name
+                    : "name is null");
             }
         }
     }

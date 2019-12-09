@@ -2,7 +2,7 @@
 
 public static class PathDefine
 {
-    public static readonly string ABBuildConfig = "Assets/Editor/ABConfig.asset";
+    public static readonly string ABBuildConfig = "Assets/RLFrame.Editor/Editor/Resource/ABConfig.asset";
     public static readonly string BundleTargetPath = Application.streamingAssetsPath;
 
     public static readonly string XmlPath = Application.dataPath + "/AssetBundleLoadConfig.xml";
@@ -40,7 +40,7 @@ public static class Capacity
 
 public static class TimeOut
 {
-    public static readonly int AsyncLoad = 200000;
+    public static readonly int AsyncLoad = 100000;
 }
 
 public static class P

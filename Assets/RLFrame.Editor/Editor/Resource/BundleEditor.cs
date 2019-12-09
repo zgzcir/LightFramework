@@ -17,6 +17,21 @@ public class BundleEditor
 
     private static List<string> usefulAssetPaths = new List<string>();
 
+    private static void SetDirectories(AssetBundleBuildConfig.AssetDirectoryConfig directory)
+    {
+        if (assetDirectoriesDic.ContainsKey(directory.assetBundleName))
+        {
+            Debug.LogError("AB包配置名字重复,请检查");
+        }
+        else
+        {
+            assetDirectoriesDic.Add(directory.assetBundleName, directory.path);
+
+            trackedAssetPaths.Add(directory.path);
+            usefulAssetPaths.Add(directory.path);
+        }
+    }
+
     [MenuItem("Tools/打包")]
     public static void Build()
     {
@@ -27,20 +42,8 @@ public class BundleEditor
 
         AssetBundleBuildConfig assetBundleBuildConfig =
             AssetDatabase.LoadAssetAtPath<AssetBundleBuildConfig>(PathDefine.ABBuildConfig);
-        assetBundleBuildConfig.AssetDirectoryPath.ForEach(directory =>
-        {
-            if (assetDirectoriesDic.ContainsKey(directory.assetBundleName))
-            {
-                Debug.LogError("AB包配置名字重复,请检查");
-            }
-            else
-            {
-                assetDirectoriesDic.Add(directory.assetBundleName, directory.path);
-
-                trackedAssetPaths.Add(directory.path);
-                usefulAssetPaths.Add(directory.path);
-            }
-        });
+        assetBundleBuildConfig.AssetDirectory.ForEach(SetDirectories);
+        SetDirectories(assetBundleBuildConfig.AssetBundleBuildConfigDirectory);
 
         string[] prefabsGuids = AssetDatabase.FindAssets("t:Prefab", assetBundleBuildConfig.prefabsPath.ToArray());
         for (int i = 0; i < prefabsGuids.Length; i++)
@@ -52,6 +55,7 @@ public class BundleEditor
             {
                 GameObject go = AssetDatabase.LoadAssetAtPath<GameObject>(path);
                 var pendingDenpendencies = AssetDatabase.GetDependencies(path);
+
                 List<string> denpendenciesPath = new List<string>();
                 for (int j = 0; j < pendingDenpendencies.Length; j++)
                 {
@@ -172,7 +176,6 @@ public class BundleEditor
                 }
             }
         }
-
         foreach (var VARIABLE in assetPathDic)
         {
             Debug.Log(VARIABLE.Key + ":  " + VARIABLE.Value);
@@ -188,7 +191,7 @@ public class BundleEditor
     }
 
     private static void ClearInvalidAB()
-    {
+    { 
         if (!Directory.Exists(PathDefine.BundleTargetPath))
             Directory.CreateDirectory(PathDefine.BundleTargetPath);
 
@@ -198,37 +201,31 @@ public class BundleEditor
         for (int i = 0; i < fileInfos.Length; i++)
         {
             var file = fileInfos[i];
-            if (file.Name.EndsWith(".meta"))
-            {
-                File.Delete(file.FullName);
-                continue;
-            }
-
-            if (IsContainABName(file.Name, assetBundleNames))
-            {
-                continue;
-            }
-
-            if (!file.Name.EndsWith(".manifest"))
-                Debug.Log("此AB包已无效：" + file.Name);
+            if (IsContainABName(file.Name, assetBundleNames)) continue;
             if (File.Exists(file.FullName))
             {
+//                if (!file.Name.EndsWith(".meta") && !file.Name.EndsWith(".manifest"))
+                    Debug.Log("此AB包已无效：" + file.Name);
                 File.Delete(file.FullName);
             }
         }
     }
 
-
+    /// <summary>
+    /// 包 包.meta manifest manifest.meta
+    /// </summary>
+    /// <param name="name"></param>
+    /// <param name="strs"></param>
+    /// <returns></returns>
     private static bool IsContainABName(string name, string[] strs)
     {
         for (int i = 0; i < strs.Length; i++)
         {
-            if (name.Equals(strs[i]))
+            if (name.Contains(strs[i]))
             {
                 return true;
             }
         }
-
         return false;
     }
 
@@ -246,6 +243,7 @@ public class BundleEditor
 
         return false;
     }
+
 //写依赖包
     private static void WriteData(Dictionary<string, string> assetPathDic)
     {
@@ -281,6 +279,7 @@ public class BundleEditor
                     }
                 }
             }
+
             assetBundleLoadConfig.ABList.Add(aBBase);
         }
 
@@ -300,6 +299,7 @@ public class BundleEditor
         BinaryFormatter bf = new BinaryFormatter();
         bf.Serialize(fs2, assetBundleLoadConfig);
         fs2.Close();
+//        AssetDatabase.Refresh();
     }
 
     private static bool IsValidPath(string path)

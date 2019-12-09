@@ -7,7 +7,8 @@ using UnityEngine.Serialization;
 public class AssetBundleBuildConfig : ScriptableObject
 {
     public List<string> prefabsPath = new List<string>();
-    public List<AssetDirectoryConfig> AssetDirectoryPath = new List<AssetDirectoryConfig>();
+    public List<AssetDirectoryConfig> AssetDirectory = new List<AssetDirectoryConfig>();
+    public AssetDirectoryConfig AssetBundleBuildConfigDirectory;
 
 //    #region  
 //    private readonly string AssetsPrefix="Assets";

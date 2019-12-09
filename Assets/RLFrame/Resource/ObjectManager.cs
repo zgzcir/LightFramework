@@ -9,7 +9,7 @@ using Object = UnityEngine.Object;
 public partial class ObjectManager : Singleton<ObjectManager>
 {
     protected Dictionary<Type, object> classPoolDic = new Dictionary<Type, object>();
-
+ 
     //实例对象池 主池 crc
     protected Dictionary<uint, List<ObjectItem>> objectItemsInstancePoolDic = new Dictionary<uint, List<ObjectItem>>();
     
@@ -172,7 +172,7 @@ public partial class ObjectManager : Singleton<ObjectManager>
         tempGameObjcets.Clear();
     }
 
-    public GameObject InstantiateObject(string path, bool isSetSceneTrans = false, bool isClear = true)
+    public GameObject InstantiateObject(string path, bool isShowDefaultTrans = false, bool isClear = true)
     {
         uint crc = CRC32.GetCRC32(path);
         ObjectItem objectItem = GetCacheObjectItemFromPoolDic(crc);
@@ -191,7 +191,7 @@ public partial class ObjectManager : Singleton<ObjectManager>
             }
         }
 
-        if (isSetSceneTrans)
+        if (isShowDefaultTrans)
         {
             objectItem.CloneObj.transform.SetParent(SceneTrans, false);
         }
@@ -302,7 +302,6 @@ public partial class ObjectManager : Singleton<ObjectManager>
             {
                 objectItem.CloneObj.transform.SetParent(SceneTrans, false);
             }
-
             outerCallBack?.Invoke(path, objectItem.CloneObj, paramList);
             return objectItem.Guid;
         }

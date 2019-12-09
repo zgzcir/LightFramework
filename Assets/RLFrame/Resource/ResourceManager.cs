@@ -13,6 +13,7 @@ public enum LoadResPriority
     RES_LOW,
     RES_NUM
 }
+
 public class ObjectItem
 {
     public uint Crc;
@@ -75,17 +76,17 @@ public class AsyncLoadAssetParam
 
 public class AsyncCallBackPack
 {
-    public OnAsyncFinish Finish;
+    public OnAsyncFinish AssetFinish;
     public object[] paramList;
 
 //->finalFinish
-    public OnAsyncPrimitiveAssetFinish PrimitiveAssetFinishInner;
+    public OnAsyncPrimitiveAssetFinish PrimitiveAssetFinish;
     public ObjectItem ObjectItem;
 
     public void Reset()
     {
-        Finish = null;
-        PrimitiveAssetFinishInner = null;
+        AssetFinish = null;
+        PrimitiveAssetFinish = null;
         ObjectItem = null;
         paramList = null;
     }
@@ -112,7 +113,7 @@ public class ResourceManager : Singleton<ResourceManager>
     protected ClassObjectPool<AsyncCallBackPack> asyncCallBackPackPool =
         new ClassObjectPool<AsyncCallBackPack>(Capacity.AsyncCallBack);
 
-    
+
     public void Init(MonoBehaviour mono)
     {
         for (int i = 0; i < (int) LoadResPriority.RES_NUM; i++)
@@ -233,6 +234,8 @@ public class ResourceManager : Singleton<ResourceManager>
         if (!IsLoadFromAssetBundle)
         {
             item = AssetBundleManager.Instance.FindAssetItem(crc);
+
+
             if (item.AssetObject != null)
                 obj = item.AssetObject;
             else
@@ -257,7 +260,7 @@ public class ResourceManager : Singleton<ResourceManager>
         ReleaseResource(path, false);
     }
 
-    public bool IsLoadFromAssetBundle = true;
+    public bool IsLoadFromAssetBundle = false;
 
     protected CMapList<AssetItem> unRefAseetItems = new CMapList<AssetItem>();
 
@@ -343,7 +346,7 @@ public class ResourceManager : Singleton<ResourceManager>
                 if (assetItem.AssetObject != null)
                     obj = assetItem.AssetObject as Object;
                 else
-                    obj = assetItem.assetBundle.LoadAsset<Object>(assetItem.assetName);
+                    obj = assetItem.assetBundle.LoadAsset<Object>(assetItem.assetName); 
             }
         }
 
@@ -411,6 +414,7 @@ public class ResourceManager : Singleton<ResourceManager>
         DestroyAsset(item, isDestroyCache);
         return true;
     }
+
 //字典去除 卸载bundle
     private void DestroyAsset(AssetItem item, bool destroyCache = false)
     {
@@ -421,8 +425,9 @@ public class ResourceManager : Singleton<ResourceManager>
             unRefAseetItems.InsertToHead(item);
             return;
         }
+
         //error
-        if (!AssetDic.Remove(item.crc)) 
+        if (!AssetDic.Remove(item.crc))
             return;
         unRefAseetItems.Remove(item);
         //清除对象池中其他同crc的object
@@ -433,11 +438,12 @@ public class ResourceManager : Singleton<ResourceManager>
         {
             item.AssetObject = null;
         }
+
         Resources.UnloadUnusedAssets();
 //        return;
 #endif
 //        item.AssetObject = null;
-    } 
+    }
 
     private void CacheResource(string path, ref AssetItem item, uint crc, Object obj, int addRefCount = 1)
     {
@@ -466,14 +472,15 @@ public class ResourceManager : Singleton<ResourceManager>
             AssetDic.Add(crc, item);
         }
     }
+
     private void WashOut()
     {
-        while (unRefAseetItems.Size()>=MaxCacheCount)
+        while (unRefAseetItems.Size() >= MaxCacheCount)
         {
-            for (int i = 0; i < MaxCacheCount/2; i++)
+            for (int i = 0; i < MaxCacheCount / 2; i++)
             {
                 AssetItem assetItem = unRefAseetItems.Back();
-                DestroyAsset(assetItem,true);
+                DestroyAsset(assetItem, true);
             }
         }
     }
@@ -499,13 +506,15 @@ public class ResourceManager : Singleton<ResourceManager>
         return item;
     }
 
-    public void AsyncLoadResource(string path, OnAsyncFinish cb, LoadResPriority priority, params object[] paramList
+    public void AsyncLoadResource(string path, OnAsyncFinish cb, LoadResPriority priority, bool isSprite = false,
+        params object[] paramList
     )
     {
-        AsyncLoadResource(path, cb, priority, 0, paramList);
+        AsyncLoadResource(path, cb, priority, isSprite, 0, paramList);
     }
 
-    public void AsyncLoadResource(string path, OnAsyncFinish cb, LoadResPriority priority, uint crc = 0,
+    public void AsyncLoadResource(string path, OnAsyncFinish cb, LoadResPriority priority, bool isSprite = false,
+        uint crc = 0,
         params object[] paramList)
     {
         if (crc == 0)
@@ -524,13 +533,14 @@ public class ResourceManager : Singleton<ResourceManager>
             asyncLoadAssetParam = asyncLoadResParamPackPool.Spawn();
             asyncLoadAssetParam.Crc = crc;
             asyncLoadAssetParam.Path = path;
+            asyncLoadAssetParam.isSprite = isSprite;
             asyncLoadAssetParam.Priority = priority;
             asyncLoadAssetParamDic.Add(crc, asyncLoadAssetParam);
             loadingAssetLists[(int) priority].Add(asyncLoadAssetParam);
         }
 
         AsyncCallBackPack callBackPack = asyncCallBackPackPool.Spawn();
-        callBackPack.Finish = cb;
+        callBackPack.AssetFinish = cb;
         callBackPack.paramList = paramList;
         asyncLoadAssetParam.CallBackPacks.Add(callBackPack);
     }
@@ -544,6 +554,15 @@ public class ResourceManager : Singleton<ResourceManager>
             bool isHaveYield = false;
             for (int i = 0; i < (int) LoadResPriority.RES_NUM; i++)
             {
+                if (loadingAssetLists[(int) LoadResPriority.RES_HIGH].Count > 0)
+                {
+                    i = (int) LoadResPriority.RES_HIGH;
+                }
+                else if (loadingAssetLists[(int) LoadResPriority.RES_MIDDLE].Count > 0)
+                {
+                    i = (int) LoadResPriority.RES_MIDDLE;
+                }
+
                 List<AsyncLoadAssetParam> loadingList = loadingAssetLists[i];
                 if (loadingList.Count <= 0)
                     continue;
@@ -556,8 +575,16 @@ public class ResourceManager : Singleton<ResourceManager>
 #if UNITY_EDITOR
                 if (!IsLoadFromAssetBundle)
                 {
-                    obj = LoadAssetByEditor<Object>(asyncLoadAssetParam.Path);
-                    yield return new WaitForSeconds(0.5f);
+                    if (asyncLoadAssetParam.isSprite)
+                    {
+                        obj = LoadAssetByEditor<Sprite>(asyncLoadAssetParam.Path);
+                    }
+                    else
+                    {
+                        obj = LoadAssetByEditor<Object>(asyncLoadAssetParam.Path);
+                    }
+
+//                    yield return new WaitForSeconds(0.0001f);
                     assetItem = AssetBundleManager.Instance.FindAssetItem(asyncLoadAssetParam.Crc);
                 }
 #endif
@@ -587,19 +614,24 @@ public class ResourceManager : Singleton<ResourceManager>
                     asyncCallBackPacks.Count);
                 for (int j = 0; j < asyncCallBackPacks.Count; j++)
                 {
-                    AsyncCallBackPack callBackPack = asyncCallBackPacks[i];
-                    if (callBackPack != null || callBackPack.ObjectItem != null)
+                    AsyncCallBackPack callBackPack = asyncCallBackPacks[j];
+
+                    #region forObjectManager
+
+                    if (callBackPack != null && callBackPack.ObjectItem != null)
                     {
                         callBackPack.ObjectItem
                             .PrimitiveAssetItem = assetItem;
-                        callBackPack.PrimitiveAssetFinishInner?.Invoke(asyncLoadAssetParam.Path,
+                        callBackPack.PrimitiveAssetFinish?.Invoke(asyncLoadAssetParam.Path,
                             callBackPack.ObjectItem, callBackPack.ObjectItem.paramList);
                         //**
-                        callBackPack.PrimitiveAssetFinishInner = null;
+                        callBackPack.PrimitiveAssetFinish = null;
                         callBackPack.ObjectItem = null;
                     }
 
-                    callBackPack?.Finish?.Invoke(asyncLoadAssetParam.Path, obj, callBackPack.paramList);
+                    #endregion
+
+                    callBackPack?.AssetFinish?.Invoke(asyncLoadAssetParam.Path, obj, callBackPack.paramList);
                     callBackPack?.Reset();
                     asyncCallBackPackPool.Recycle(callBackPack);
                 }
@@ -608,24 +640,36 @@ public class ResourceManager : Singleton<ResourceManager>
                 asyncLoadAssetParamDic.Remove(asyncLoadAssetParam.Crc);
                 asyncLoadAssetParam.Reset();
                 asyncLoadResParamPackPool.Recycle(asyncLoadAssetParam);
+                //editor
                 if (System.DateTime.Now.Ticks - lastYieldTime > TimeOut.AsyncLoad)
                 {
+                    Debug.Log("return1");
                     yield return null;
                     lastYieldTime = System.DateTime.Now.Ticks;
                     isHaveYield = true;
                 }
             }
 
-            if (!isHaveYield || System.DateTime.Now.Ticks - lastYieldTime > TimeOut.AsyncLoad)
+//空转
+            if (!isHaveYield || DateTime.Now.Ticks - lastYieldTime > TimeOut.AsyncLoad)
             {
+                Debug.Log("return2");
+
                 yield return null;
                 lastYieldTime = System.DateTime.Now.Ticks;
             }
         }
     }
 
+    /// <summary>
+    /// ->objecmanager
+    /// </summary>
+    /// <param name="path"></param>
+    /// <param name="objectItem"></param>
+    /// <param name="innerCallBack"></param>
+    /// <param name="priority"></param>
     public void AsyncLoadResource(string path, ObjectItem objectItem, OnAsyncPrimitiveAssetFinish innerCallBack,
-        LoadResPriority priority)
+        LoadResPriority priority, bool isSprite = false)
     {
         AssetItem assetItem = GetCacheAssetItem(objectItem.Crc);
         if (assetItem != null)
@@ -641,13 +685,14 @@ public class ResourceManager : Singleton<ResourceManager>
             asyncLoadAssetParam = asyncLoadResParamPackPool.Spawn();
             asyncLoadAssetParam.Crc = objectItem.Crc;
             asyncLoadAssetParam.Path = path;
+            asyncLoadAssetParam.isSprite = isSprite;
             asyncLoadAssetParam.Priority = priority;
             asyncLoadAssetParamDic.Add(objectItem.Crc, asyncLoadAssetParam);
             loadingAssetLists[(int) priority].Add(asyncLoadAssetParam);
         }
 
         AsyncCallBackPack callBackPack = asyncCallBackPackPool.Spawn();
-        callBackPack.PrimitiveAssetFinishInner = innerCallBack;
+        callBackPack.PrimitiveAssetFinish = innerCallBack;
         callBackPack.ObjectItem = objectItem;
         asyncLoadAssetParam.CallBackPacks.Add(callBackPack);
     }
