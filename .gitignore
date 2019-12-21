@@ -28,6 +28,7 @@
 .vscode/
 obj/
 packages/
+UIElementsSchema/
 Temp/
 Logs/
 Library/
