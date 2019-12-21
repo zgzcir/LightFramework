@@ -7,6 +7,8 @@ using System.Reflection;
 using System.IO;
 using System.Xml;
 using System.ComponentModel;
+using System.Diagnostics;
+using System.Linq;
 using System.Net;
 using System.Security.Permissions;
 using System.Text;
@@ -18,11 +20,12 @@ using UnityEditor.Experimental.GraphView;
 using UnityEditor.UIElements;
 using Object = UnityEngine.Object;
 using static ReflectionExtensions;
-using  static RLFramework.Base.Logger;
+using static RLFramework.Base.Logger;
+using Debug = UnityEngine.Debug;
 
 public class ConfigEditor
 {
-    [MenuItem("Assets/.cs/生成xml")] 
+    [MenuItem("Assets/.cs/生成xml")]
     public static void AssetsClassGenXml()
     {
         Object[] objs = Selection.objects;
@@ -160,12 +163,13 @@ public class ConfigEditor
         {
             var filePath = filesPath[i];
             EditorUtility.DisplayProgressBar("xml生成Excel", $"正在生成{filePath}的Excel...", 1.0f / objs.Length);
-            if (filePath.EndsWith(".xml"))       
+            if (filePath.EndsWith(".xml"))
             {
                 string name = filePath.Substring(filePath.LastIndexOf(@"\") + 1).Replace(".xml", "");
                 XmlGenExcelProcess(name);
             }
         }
+
         AssetDatabase.Refresh();
         EditorUtility.ClearProgressBar();
     }
@@ -194,12 +198,14 @@ public class ConfigEditor
         {
             ReadSheetData(data, t, sheetDic, sheetDataDic);
         }
+
         string xlslPath = Application.dataPath.Replace("Assets", "Data/Excel/" + excelName);
         if (IsFileOccupied(xlslPath))
         {
-            Debug.LogError("File is already occupied, please close and try again.");
+            Debug.LogError("File is already be occupied, please close and try again.");
             return;
         }
+
         try
         {
             FileInfo xlslInfo = new FileInfo(xlslPath);
@@ -227,13 +233,16 @@ public class ConfigEditor
                         for (int j = 0; j < sheetData.Datas[i].Dic.Count; j++) //->>>列
                         {
                             var range = worksheet.Cells[i + 2, j + 1];
-                            range.Value = rowData.Dic[sheetData.ColNames[j]];
+                            var value = rowData.Dic[sheetData.ColNames[j]];
+                            range.Value = value;
+                            range.AutoFitColumns();
+                            if (value.Contains("\n")||value.Contains("\r"))
+                            {
+                                range.Style.WrapText = true;
+                            }
                         }
                     }
-
-                    worksheet.Cells.AutoFitColumns();
                 }
-
                 excelPackage.Save();
                 Debug.Log($"生成{xlslPath}成功");
             }
@@ -317,7 +326,7 @@ public class ConfigEditor
                     SheetName = list.GetAttribute("sheetname"),
                     MainKey = list.GetAttribute("mainkey"),
                     Split = list.GetAttribute("split"),
-                    Children = new List<Variable>(),
+                    Variables = new List<Variable>(),
                     Depth = depth
                 };
                 if (!string.IsNullOrEmpty(sheet.SheetName))
@@ -343,13 +352,15 @@ public class ConfigEditor
                                 childVariable.ListSheetName = childList.GetAttribute("sheetname");
                                 ReadRegElement(childList, sheetDic, depth);
                             }
-                            sheet.Children.Add(childVariable);
+
+                            sheet.Variables.Add(childVariable);
                         }
+
                         sheetDic.Add(sheet.SheetName, sheet);
                     }
                 }
 
-             ReadRegElement(list, sheetDic, depth);
+                ReadRegElement(list, sheetDic, depth);
             }
         }
     }
@@ -359,12 +370,13 @@ public class ConfigEditor
     private static void ReadSheetData(object data, Sheet sheet, Dictionary<string, Sheet> sheetDic,
         Dictionary<string, SheetData> sheetDataDic)
     {
-        List<Variable> variables = sheet.Children;
+        List<Variable> variables = sheet.Variables;
         var parent = sheet.Parent;
-        object dataList =
+        object sheetDataList =
             data.GetMemberValue(parent.Name);
-        int listCount = dataList.GetListCount();
+        int listCount = sheetDataList.GetListCount();
         SheetData sheetData = new SheetData();
+
         for (int i = 0; i < variables.Count; i++)
         {
             var variable = variables[i];
@@ -377,26 +389,34 @@ public class ConfigEditor
 
         for (int i = 0; i < listCount; i++) //--->一条数据
         {
-            object member = dataList.GetListItemValue(i);
+            object sheetItem = sheetDataList.GetListItemValue(i);
             var rowData = new RowData();
             for (int j = 0; j < variables.Count; j++) //每条数据里的每个变量
             {
-                
                 var variable = variables[j];
-                if (variable.Type == "list") // todo->>>sheetname
+                if (variable.Type == "list" && string.IsNullOrEmpty(variable.Split)) // todo->>>sheetname 外层表
                 {
                     Sheet innerSheet = sheetDic[variable.ListSheetName];
-                    ReadSheetData(member, innerSheet, sheetDic, sheetDataDic);
+                    ReadSheetData(sheetItem, innerSheet, sheetDic, sheetDataDic);
+                }
+                else if (string.Equals(variable.Type, "list")&&string.IsNullOrEmpty(variable.Foreign))
+                {
+                    
+                }
+                else if (string.Equals(variable.Type, "list"))
+                {
+                    string block = GetSheetBlockContent(sheetItem, variable, sheetDic);
+                    rowData.Dic.Add(variable.Col, block);
                 }
                 else if (variable.Type.Equals("stringblock") || variable.Type.Equals("floatblock") ||
                          variable.Type.Equals("intblock") || variable.Type.Equals("boolblock"))
                 {
-                    string block = GetBlockContent(member, variable);
-                    rowData.Dic.Add(variable.Col,block);
+                    string block = GetBlockContent(sheetItem, variable);
+                    rowData.Dic.Add(variable.Col, block);
                 }
                 else
                 {
-                    var value = member.GetMemberValue(variable.Name);
+                    var value = sheetItem.GetMemberValue(variable.Name);
                     if (value != null)
                     {
                         rowData.Dic.Add(variable.Col, value.ToString());
@@ -420,13 +440,20 @@ public class ConfigEditor
         }
     }
 
+    /// <summary>
+    /// 基本数据类型链表
+    /// </summary>
+    /// <param name="data"></param>
+    /// <param name="variable"></param>
+    /// <returns></returns>
     private static string GetBlockContent(object data, Variable variable)
     {
-        if (string.IsNullOrEmpty(variable.Split))
+        string split = variable.Split;
+        if (string.IsNullOrEmpty(split))
         {
             LogError("split is isNullOrEmpty");
         }
-        string split = variable.Split;
+
         StringBuilder content = new StringBuilder();
         object block = data.GetMemberValue(variable.Name);
         var blockListCount = block.GetListCount();
@@ -435,7 +462,52 @@ public class ConfigEditor
             content.Append(block.GetListItemValue(i));
             content.Append(split);
         }
-        content.Remove(content.Length-1,1);
+
+        content.Remove(content.Length - 1, 1);
+        return content.ToString();
+    }
+
+    /// <summary>
+    /// 数据较少的类列表
+    /// </summary>
+    /// <param name="data"></param>
+    /// <param name="variable"></param>
+    /// <param name="sheetDic"></param>
+    /// <returns></returns>
+    private static string GetSheetBlockContent(object data, Variable variable, Dictionary<string, Sheet> sheetDic)
+    {
+        if (!sheetDic.TryGetValue(variable.ListSheetName, out Sheet sheet))
+        {
+            LogError($"Can not Find shhet :{variable.ListSheetName}");
+            return null;
+        }
+
+        string splitOuter = variable.Split;
+        string splitInner = sheet.Split;
+        if (string.IsNullOrEmpty(splitOuter) || string.IsNullOrEmpty(splitInner))
+        {
+            LogError("split is isNullOrEmpty");
+            return null;
+        }
+
+        object block = data.GetMemberValue(variable.Name);
+
+        StringBuilder content = new StringBuilder();
+        var listCount = block.GetListCount();
+        for (int i = 0; i < listCount; i++)
+        {
+            var item = block.GetListItemValue(i);
+            for (int j = 0; j < sheet.Variables.Count; j++)
+            {
+                content.Append(item.GetMemberValue(sheet.Variables[j].Name));
+                content.Append(splitInner);
+            }
+
+            content.Remove(content.Length - 1, 1);
+            if (i != sheet.Variables.Count - 1)
+                content.Append(splitOuter);
+        }
+
         return content.ToString();
     }
 
@@ -464,8 +536,6 @@ public class ConfigEditor
 
     #endregion
 
-
-
     #endregion
 
     public class Sheet
@@ -478,7 +548,7 @@ public class ConfigEditor
         public string SheetName { get; set; }
         public string MainKey { get; set; }
         public string Split { get; set; }
-        public List<Variable> Children;
+        public List<Variable> Variables;
     }
 
     public class Variable
