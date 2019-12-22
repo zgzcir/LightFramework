@@ -6,18 +6,8 @@ using System;
 using System.Reflection;
 using System.IO;
 using System.Xml;
-using System.ComponentModel;
-using System.Diagnostics;
-using System.Linq;
-using System.Net;
-using System.Security.Permissions;
 using System.Text;
 using OfficeOpenXml;
-using OfficeOpenXml.DataValidation;
-using OfficeOpenXml.FormulaParsing.Excel.Functions.Math;
-using OfficeOpenXml.Style;
-using UnityEditor.Experimental.GraphView;
-using UnityEditor.UIElements;
 using Object = UnityEngine.Object;
 using static ReflectionExtensions;
 using static RLFramework.Base.Logger;
@@ -236,13 +226,14 @@ public class ConfigEditor
                             var value = rowData.Dic[sheetData.ColNames[j]];
                             range.Value = value;
                             range.AutoFitColumns();
-                            if (value.Contains("\n")||value.Contains("\r"))
+                            if (value.Contains("\n") || value.Contains("\r"))
                             {
                                 range.Style.WrapText = true;
                             }
                         }
                     }
                 }
+
                 excelPackage.Save();
                 Debug.Log($"生成{xlslPath}成功");
             }
@@ -368,7 +359,7 @@ public class ConfigEditor
     //todo ???? xml(数据保持)->reg(sheet)->sheetdata->excel
     //data->>sheetdata
     private static void ReadSheetData(object data, Sheet sheet, Dictionary<string, Sheet> sheetDic,
-        Dictionary<string, SheetData> sheetDataDic)
+        Dictionary<string, SheetData> sheetDataDic, string mainKey = null)
     {
         List<Variable> variables = sheet.Variables;
         var parent = sheet.Parent;
@@ -376,7 +367,11 @@ public class ConfigEditor
             data.GetMemberValue(parent.Name);
         int listCount = sheetDataList.GetListCount();
         SheetData sheetData = new SheetData();
-
+        if (!string.IsNullOrEmpty(parent.Foreign))
+        {
+            sheetData.ColNames.Add(parent.Foreign);
+            sheetData.Types.Add(parent.Type);
+        }
         for (int i = 0; i < variables.Count; i++)
         {
             var variable = variables[i];
@@ -391,17 +386,25 @@ public class ConfigEditor
         {
             object sheetItem = sheetDataList.GetListItemValue(i);
             var rowData = new RowData();
+            if (!string.IsNullOrEmpty(parent.Foreign))
+            {
+                rowData.Dic.Add(parent.Foreign,mainKey);
+            }
+            if (!string.IsNullOrEmpty(sheet.MainKey))
+            {
+                mainKey = sheetItem.GetMemberValue(sheet.MainKey).ToString();
+            }
+            
             for (int j = 0; j < variables.Count; j++) //每条数据里的每个变量
             {
                 var variable = variables[j];
                 if (variable.Type == "list" && string.IsNullOrEmpty(variable.Split)) // todo->>>sheetname 外层表
                 {
                     Sheet innerSheet = sheetDic[variable.ListSheetName];
-                    ReadSheetData(sheetItem, innerSheet, sheetDic, sheetDataDic);
+                    ReadSheetData(sheetItem, innerSheet, sheetDic, sheetDataDic, mainKey);
                 }
-                else if (string.Equals(variable.Type, "list")&&string.IsNullOrEmpty(variable.Foreign))
+                else if (string.Equals(variable.Type, "list") && string.IsNullOrEmpty(variable.Foreign))
                 {
-                    
                 }
                 else if (string.Equals(variable.Type, "list"))
                 {
