@@ -16,9 +16,13 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
     public bool LoadAssetBundleCofig()
     {
         AssetItemDic.Clear();
-        string path = P.GetFullPath(PathDefine.BundleTargetPath, NameDefine.LoadConfigBundle);
+#if UNITY_EDITOR
+        if (!ResourceManager.Instance.IsLoadFromAssetBundle)
+            return true;
+#endif
+        string path = P.GetFullPath(Application.streamingAssetsPath, NameDefine.LoadProfileAB);
         AssetBundle loadConfigBundle = AssetBundle.LoadFromFile(path);
-        TextAsset loadConfigBytes = loadConfigBundle.LoadAsset<TextAsset>(NameDefine.LoadConfigAsset);
+        TextAsset loadConfigBytes = loadConfigBundle.LoadAsset<TextAsset>(NameDefine.LoadProfileAsset);
         if (loadConfigBytes == null)
         {
             Debug.LogError("AssetBundleLoadConfig is not exits");
@@ -27,11 +31,11 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
 
         MemoryStream ms = new MemoryStream(loadConfigBytes.bytes);
         BinaryFormatter bf = new BinaryFormatter();
-        AssetBundleLoadConfig loadConfig = (AssetBundleLoadConfig) bf.Deserialize(ms);
+        AssetBundleLoadProfile loadProfile = (AssetBundleLoadProfile) bf.Deserialize(ms);
         ms.Close();
-        for (int i = 0; i < loadConfig.ABList.Count; i++)
+        for (int i = 0; i < loadProfile.ABList.Count; i++)
         {
-            var aBBase = loadConfig.ABList[i];
+            var aBBase = loadProfile.ABList[i];
             AssetItem item = new AssetItem
             {
                 crc = aBBase.Crc,
@@ -79,7 +83,7 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
         if (!AssetBundleItemDic.TryGetValue(crc, out item))
         {
             AssetBundle assetBundle = null;
-            string path = P.GetFullPath(PathDefine.BundleTargetPath, name);
+            string path = P.GetFullPath(Application.streamingAssetsPath, name);
             if (File.Exists(path))
             {
                 assetBundle = AssetBundle.LoadFromFile(path);
@@ -133,6 +137,7 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
             }
         }
     }
+
     public AssetItem FindAssetItem(uint crc)
     {
         if (AssetItemDic.TryGetValue(crc, out AssetItem assetItem))
@@ -147,7 +152,6 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
         return assetItem;
 #endif
         return null;
-
     }
 }
 

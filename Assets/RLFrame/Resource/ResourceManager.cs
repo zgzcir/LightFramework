@@ -306,7 +306,6 @@ public class ResourceManager : Singleton<ResourceManager>
         CacheResource(path, ref item, crc, obj);
         return obj;
     }
-
     //给ObjectManager的接口
     public ObjectItem LoadPrimitiveAssetItem(string path, ObjectItem objectItem)
     {
@@ -432,16 +431,15 @@ public class ResourceManager : Singleton<ResourceManager>
         unRefAseetItems.Remove(item);
         //清除对象池中其他同crc的object
         ObjectManager.Instance.ClearPoolObject(item.crc);
-        AssetBundleManager.Instance.ReleaseAssetBundle(item);
 #if UNITY_EDITOR
         if (item.AssetObject != null)
         {
             item.AssetObject = null;
         }
-
-        Resources.UnloadUnusedAssets();
-//        return;
+        return;
 #endif
+        AssetBundleManager.Instance.ReleaseAssetBundle(item);
+
 //        item.AssetObject = null;
     }
 
@@ -643,17 +641,16 @@ public class ResourceManager : Singleton<ResourceManager>
                 //editor
                 if (System.DateTime.Now.Ticks - lastYieldTime > TimeOut.AsyncLoad)
                 {
-                    Debug.Log("return1");
+//                    Debug.Log("return1");
                     yield return null;
                     lastYieldTime = System.DateTime.Now.Ticks;
                     isHaveYield = true;
                 }
             }
-
 //空转
             if (!isHaveYield || DateTime.Now.Ticks - lastYieldTime > TimeOut.AsyncLoad)
             {
-                Debug.Log("return2");
+//                Debug.Log("return2");
 
                 yield return null;
                 lastYieldTime = System.DateTime.Now.Ticks;

@@ -14,6 +14,10 @@ using static PathDefineEditor;
 
 public class ConfigEditor
 {
+    #region base
+
+    
+
     [MenuItem("Assets/.cs/生成xml")]
     public static void AssetsClassGenXml()
     {
@@ -138,6 +142,11 @@ public class ConfigEditor
         AssetDatabase.Refresh();
         EditorUtility.ClearProgressBar();
     }
+    #endregion
+
+    #region genexcel
+
+    
 
     [MenuItem("Tools/配置/全体xml生成Excel")]
     public static void AssetsXmlGenExcelUnite()
@@ -189,7 +198,7 @@ public class ConfigEditor
         string xlslPath = ExcelFullPath(excelName);
         if (IsFileOccupied(xlslPath))
         {
-            Debug.LogError("File is already be occupied, please close and try again.");
+            Debug.LogError($"File {excelName} is already be occupied, please close and try again.");
 
             return;
         }
@@ -483,35 +492,16 @@ public class ConfigEditor
 
         return content.ToString();
     }
+    #endregion
 
-    #region fileTools
-
-    private static bool IsFileOccupied(string path)
-    {
-        bool result = false;
-        if (!File.Exists(path)) return result;
-        FileStream fileStream = null;
-        try
-        {
-            fileStream = File.OpenRead(path);
-        }
-        catch (Exception e)
-        {
-            result = true;
-        }
-        finally
-        {
-            fileStream?.Close();
-        }
-
-        return result;
-    }
 
     #endregion
 
-    #endregion
+    #region genxml
 
-    [MenuItem("Tools/配置/excel->xml")]
+    
+
+    [MenuItem("Tools/配置/全体Excel生成数据")]
     public static void AssetsExcelGenXmlUnite()
     {
         string[] files = Directory.GetFiles(RegLocalPath, "*", SearchOption.AllDirectories);
@@ -614,7 +604,10 @@ public class ConfigEditor
         }
 
         SerializeOption.XmlSerialize(XmlFullPath(xmlName), instance);
-        Debug.Log($"{excelName}  imported");
+        SerializeOption.BinarySerialize(BinaryFullPath(xmlName), instance);
+        Debug.Log($"{className} data  imported");
+
+        
         AssetDatabase.Refresh();
     }
 
@@ -649,7 +642,6 @@ public class ConfigEditor
                     }
                 }
             }
-
             var listItem = CreateInstance(sheet.ClassName);
             foreach (var variable in sheet.Variables)
             {
@@ -766,6 +758,7 @@ public class ConfigEditor
 
         instance.SetValue(sheet.Parent.Name, list);
     }
+    #endregion
 
     #endregion
 
@@ -796,6 +789,26 @@ public class ConfigEditor
         ReadRegElement(rootElement, sheetDic, 0);
         xmlReader.Close();
         return sheetDic;
+    }
+    private static bool IsFileOccupied(string path)
+    {
+        bool result = false;
+        if (!File.Exists(path)) return result;
+        FileStream fileStream = null;
+        try
+        {
+            fileStream = File.OpenRead(path);
+        }
+        catch (Exception e)
+        {
+            result = true;
+        }
+        finally
+        {
+            fileStream?.Close();
+        }
+
+        return result;
     }
 
     #endregion

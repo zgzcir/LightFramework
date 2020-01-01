@@ -1,15 +1,16 @@
-﻿
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 [System.Serializable]
-public class ConfigDataBase 
+public class ConfigDataBase
 {
-    public  virtual void Construction()
+#if UNITY_EDITOR
+    public virtual void Construction()
     {
         
     }
+#endif
 
     public virtual void Init()
     {

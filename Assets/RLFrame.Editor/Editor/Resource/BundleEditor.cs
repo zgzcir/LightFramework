@@ -17,7 +17,7 @@ public class BundleEditor
 
     private static List<string> usefulAssetPaths = new List<string>();
 
-    private static void SetDirectories(AssetBundleBuildConfig.AssetDirectoryConfig directory)
+    private static void SetDirectory(AssetBundleBuildProfile.AssetDirectoryConfig directory)
     {
         if (assetDirectoriesDic.ContainsKey(directory.assetBundleName))
         {
@@ -32,20 +32,26 @@ public class BundleEditor
         }
     }
 
-    [MenuItem("Tools/打包")]
+    [MenuItem("Tools/AssetBundle/打包")]
     public static void Build()
     {
+        
+        ConfigEditor.AssetsXmlGenBinary();
+        
         assetDirectoriesDic.Clear();
         prefabsDic.Clear();
         usefulAssetPaths.Clear();
         trackedAssetPaths.Clear();
 
-        AssetBundleBuildConfig assetBundleBuildConfig =
-            AssetDatabase.LoadAssetAtPath<AssetBundleBuildConfig>(PathDefine.ABBuildConfig);
-        assetBundleBuildConfig.AssetDirectory.ForEach(SetDirectories);
-        SetDirectories(assetBundleBuildConfig.AssetBundleBuildConfigDirectory);
+        AssetBundleBuildProfile assetBundleBuildProfile =
+            AssetDatabase.LoadAssetAtPath<AssetBundleBuildProfile>(PathDefine.ABBuildProfile);
+        assetBundleBuildProfile.AssetDirectories.ForEach(SetDirectory);
+        
+        SetDirectory(assetBundleBuildProfile.AssetBundleLoadProfileDirectory);
 
-        string[] prefabsGuids = AssetDatabase.FindAssets("t:Prefab", assetBundleBuildConfig.prefabsPath.ToArray());
+        #region prefab
+
+        string[] prefabsGuids = AssetDatabase.FindAssets("t:Prefab", assetBundleBuildProfile.prefabsPath.ToArray());
         for (int i = 0; i < prefabsGuids.Length; i++)
         {
             string path = AssetDatabase.GUIDToAssetPath(prefabsGuids[i]);
@@ -76,6 +82,8 @@ public class BundleEditor
                     prefabsDic.Add(go.name, denpendenciesPath);
                 }
             }
+            #endregion
+
         }
 
         #region bytesfile
@@ -170,12 +178,14 @@ public class BundleEditor
                 {
                     continue;
                 }
+
                 if (IsValidPath(assetPath))
                 {
                     assetPathDic.Add(assetPath, bundleName);
                 }
             }
         }
+
         foreach (var VARIABLE in assetPathDic)
         {
             Debug.Log(VARIABLE.Key + ":  " + VARIABLE.Value);
@@ -185,18 +195,29 @@ public class BundleEditor
 
         #endregion
 
-
-        BuildPipeline.BuildAssetBundles(PathDefine.BundleTargetPath, BuildAssetBundleOptions.ChunkBasedCompression,
+        //todo editor
+        AssetBundleManifest manifest = BuildPipeline.BuildAssetBundles(PathDefineEditor.BundleTargetPath,
+            BuildAssetBundleOptions.ChunkBasedCompression,
             EditorUserBuildSettings.activeBuildTarget);
+        if (manifest == null)
+            Debug.LogError("Build AssetBundle Failed");
+        else
+            Debug.Log("Build AssetBundle Done");
     }
 
     private static void ClearInvalidAB()
-    { 
-        if (!Directory.Exists(PathDefine.BundleTargetPath))
-            Directory.CreateDirectory(PathDefine.BundleTargetPath);
+    {
+        //todo editor
+        if (!Directory.Exists(PathDefineEditor.BundleTargetPath))
+        {
+            Directory.CreateDirectory(PathDefineEditor.BundleTargetPath);
+            return;
+        }
+        
 
         string[] assetBundleNames = AssetDatabase.GetAllAssetBundleNames();
-        DirectoryInfo directoryInfo = new DirectoryInfo(PathDefine.BundleTargetPath);
+        //todo editor
+        DirectoryInfo directoryInfo = new DirectoryInfo(PathDefineEditor.BundleTargetPath);
         FileInfo[] fileInfos = directoryInfo.GetFiles("*", SearchOption.AllDirectories);
         for (int i = 0; i < fileInfos.Length; i++)
         {
@@ -205,7 +226,7 @@ public class BundleEditor
             if (File.Exists(file.FullName))
             {
 //                if (!file.Name.EndsWith(".meta") && !file.Name.EndsWith(".manifest"))
-                    Debug.Log("此AB包已无效：" + file.Name);
+                Debug.Log("此AB包已无效：" + file.Name);
                 File.Delete(file.FullName);
             }
         }
@@ -226,6 +247,7 @@ public class BundleEditor
                 return true;
             }
         }
+
         return false;
     }
 
@@ -247,8 +269,8 @@ public class BundleEditor
 //写依赖包
     private static void WriteData(Dictionary<string, string> assetPathDic)
     {
-        AssetBundleLoadConfig assetBundleLoadConfig = new AssetBundleLoadConfig();
-        assetBundleLoadConfig.ABList = new List<ABBase>();
+        AssetBundleLoadProfile assetBundleLoadProfile = new AssetBundleLoadProfile();
+        assetBundleLoadProfile.ABList = new List<ABBase>();
         foreach (var item in assetPathDic)
         {
             ABBase aBBase = new ABBase
@@ -280,24 +302,24 @@ public class BundleEditor
                 }
             }
 
-            assetBundleLoadConfig.ABList.Add(aBBase);
+            assetBundleLoadProfile.ABList.Add(aBBase);
         }
 
         if (File.Exists(PathDefine.XmlPath)) File.Delete(PathDefine.XmlPath);
         FileStream fs = new FileStream(PathDefine.XmlPath, FileMode.Create, FileAccess.ReadWrite,
             FileShare.ReadWrite);
-        XmlSerializer xmlSerializer = new XmlSerializer(typeof(AssetBundleLoadConfig));
-        xmlSerializer.Serialize(fs, assetBundleLoadConfig);
+        XmlSerializer xmlSerializer = new XmlSerializer(typeof(AssetBundleLoadProfile));
+        xmlSerializer.Serialize(fs, assetBundleLoadProfile);
         fs.Close();
 
-        assetBundleLoadConfig.ABList.ForEach(aBBase => { aBBase.Path = ""; });
+        assetBundleLoadProfile.ABList.ForEach(aBBase => { aBBase.Path = ""; });
 
 
         FileStream fs2 = new FileStream(PathDefine.BytesRelativePath,
             FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite
         );
         BinaryFormatter bf = new BinaryFormatter();
-        bf.Serialize(fs2, assetBundleLoadConfig);
+        bf.Serialize(fs2, assetBundleLoadProfile);
         fs2.Close();
 //        AssetDatabase.Refresh();
     }

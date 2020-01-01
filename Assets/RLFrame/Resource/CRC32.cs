@@ -51,7 +51,6 @@ using System.Text;
             {
                 crc = (crc << 8) ^ crcTable[(crc >> 24) ^ bytes[i]];
             }
-
             return crc;
         }
     }

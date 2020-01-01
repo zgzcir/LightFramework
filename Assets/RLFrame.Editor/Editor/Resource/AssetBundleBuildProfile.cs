@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Serialization;
 
-[CreateAssetMenu(fileName = "AssetBundleBuildConfig", menuName = "Create AssetBundleBuildConfig", order = 0)]
-public class AssetBundleBuildConfig : ScriptableObject
+[CreateAssetMenu(fileName = "AssetBundleBuildProfile", menuName = "Create AssetBundleBuildProfile", order = 0)]
+public class AssetBundleBuildProfile : ScriptableObject
 {
     public List<string> prefabsPath = new List<string>();
-    public List<AssetDirectoryConfig> AssetDirectory = new List<AssetDirectoryConfig>();
-    public AssetDirectoryConfig AssetBundleBuildConfigDirectory;
+    [FormerlySerializedAs("AssetDirectory")] public List<AssetDirectoryConfig> AssetDirectories = new List<AssetDirectoryConfig>();
+    [FormerlySerializedAs("AssetBundleLoadConfigDirectory")] public AssetDirectoryConfig AssetBundleLoadProfileDirectory;
 
 //    #region  
 //    private readonly string AssetsPrefix="Assets";

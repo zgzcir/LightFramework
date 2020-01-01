@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using static SerializeOption;
 
@@ -20,8 +18,6 @@ public class ConfigManager : Singleton<ConfigManager>
             Debug.LogError($"Loaded config {binaryPath} repeatedly");
             return ConfigDataDic[binaryPath] as T;
         }
-        
-
         T data = null;
         data = BinaryDeserializeRuntime<T>(binaryPath);
 #if UNITY_EDITOR

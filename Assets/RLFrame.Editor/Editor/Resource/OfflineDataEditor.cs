@@ -5,7 +5,7 @@ using UnityEditor;
 
 public class OfflineDataEditor
 {
-    [MenuItem("离线数据/生成离线数据")]
+    [MenuItem("Tools/离线数据/生成离线数据")]
     public static void AssetCreateOfflineData()
     {
         GameObject[] gameObjects = Selection.gameObjects;
@@ -34,7 +34,7 @@ public class OfflineDataEditor
         AssetDatabase.Refresh();
     }
 
-    [MenuItem("离线数据/生成UI离线数据")]
+    [MenuItem("Tools/离线数据/生成UI离线数据")]
     public static void AssetCreateUIOfflineData()
     {
         GameObject[] gameObjects = Selection.gameObjects;
@@ -48,7 +48,7 @@ public class OfflineDataEditor
         EditorUtility.ClearProgressBar();
     }
 
-    [MenuItem("离线数据/生成所有UI Prefab离线数据")]
+    [MenuItem("Tools/离线数据/生成所有UI Prefab离线数据")]
     public static void CreateAllUIData()
     {
         string path = PathDefine.UIPrefabPath;
@@ -83,7 +83,7 @@ public class OfflineDataEditor
         Resources.UnloadUnusedAssets();
         AssetDatabase.Refresh();
     }
-    [MenuItem("离线数据/生成Effect离线数据")]
+    [MenuItem("Tools/离线数据/生成Effect离线数据")]
     public static void AssetCreateEffectOfflineData()
     {
         GameObject[] gameObjects = Selection.gameObjects;
@@ -97,7 +97,7 @@ public class OfflineDataEditor
         EditorUtility.ClearProgressBar();
     }
     
-    [MenuItem("离线数据/生成所有Effect Prefab离线数据")]
+    [MenuItem("Tools/离线数据/生成所有Effect Prefab离线数据")]
     public static void CreateAllEffectData()
     {
         string path = PathDefine.EffectPrefabPath;

@@ -26,7 +26,6 @@ public class SerializeOption
                     xs.Serialize(sw, obj);
                 }
             }
-
             return false;
         }
         catch (Exception e)
