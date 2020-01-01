@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3eb894bb81a8e9944bf277787bf64d19, type: 3}
+  m_Name: FrameProfile
+  m_EditorClassIdentifier: 
+  ABBuildProfilePath: Assets/RLFrame.Editor/Editor/Resource/AssetBundleBuildProfile.asset
+  aBLoadXmlPath: Assets/DevelopmentReference/AssetBundleLoadConfig.xml
+  aBLoadBytesPath: Assets/GameData/Data/AssetBundleData/AssetBundleLoadProfile.bytes
+  bundleTargetPath: ../AssetBundle
+  bundleBuildInPath: Assets/StreamingAssets
+  UIPrefabPath: Assets/GameData/Prefabs/UGUI
+  EffectPrefabPath: Assets/GameData/Prefabs/Effects
+  AppName: GameName
+  appPathAndroidPath: ../Build/Android
+  appPathIOSPath: ../Build/IOS
+  appPathWindowsPath: ../Build/Windows
+  configXmlPath: Assets/GameData/Data/Xml
+  configBinaryPath: Assets/GameData/Data/Binary
+  excelPath: ../Data/Exce/
+  regPath: ../Data/Reg/
