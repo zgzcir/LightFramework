@@ -14,7 +14,7 @@ public class OfflineData : MonoBehaviour
     public int[] NodesChildCount;
 
     public bool[] NodesActive;
-
+ 
     public Vector3[] NodesPosition;
     public Vector3[] NodesScale;
     public Quaternion[] NodesRotation;

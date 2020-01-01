@@ -29,17 +29,17 @@ LoadAseetBundle();
         AssetBundle assetBundle = AssetBundle.LoadFromFile(Application.streamingAssetsPath + "/loadconfig");
         MemoryStream ms = new MemoryStream(assetBundle.LoadAsset<TextAsset>("AssetBundleLoadConfig").bytes);
         BinaryFormatter bf = new BinaryFormatter();
-        AssetBundleLoadConfig loadConfig = (AssetBundleLoadConfig) bf.Deserialize(ms);
+        AssetBundleLoadProfile loadProfile = (AssetBundleLoadProfile) bf.Deserialize(ms);
         ms.Close();
 
         string path = "Assets/GameData/Prefabs/Attack.prefab";
         uint crc = CRC32.GetCRC32(path);
         ABBase abBase = null;
-        for (int i = 0; i < loadConfig.ABList.Count; i++)
+        for (int i = 0; i < loadProfile.ABList.Count; i++)
         {
-            if (loadConfig.ABList[i].Crc == crc)
+            if (loadProfile.ABList[i].Crc == crc)
             {
-                abBase = loadConfig.ABList[i];
+                abBase = loadProfile.ABList[i];
             }
         }
 

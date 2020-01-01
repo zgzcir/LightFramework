@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<AssetBundleLoadProfile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <AssetBundle Path="Assets/GameData/Prefabs/Attack.prefab" Crc="1330568117" ABName="attack" AssetName="Attack.prefab">
+    <DependentBundles>shaders</DependentBundles>
+  </AssetBundle>
+  <AssetBundle Path="Assets/GameData/imgs/-7s28Q5-9epgXrZ7iT3cS1hx-w6.png" Crc="2656965792" ABName="imgs" AssetName="-7s28Q5-9epgXrZ7iT3cS1hx-w6.png" />
+  <AssetBundle Path="Assets/GameData/imgs/Snipaste_2019-12-07_12-59-02.png" Crc="1203354382" ABName="imgs" AssetName="Snipaste_2019-12-07_12-59-02.png" />
+  <AssetBundle Path="Assets/GameData/imgs/Snipaste_2019-12-07_12-59-13.png" Crc="362598907" ABName="imgs" AssetName="Snipaste_2019-12-07_12-59-13.png" />
+  <AssetBundle Path="Assets/GameData/imgs/Snipaste_2019-12-08_16-40-01.png" Crc="4014520828" ABName="imgs" AssetName="Snipaste_2019-12-08_16-40-01.png" />
+  <AssetBundle Path="Assets/GameData/Data/AssetBundleData/AssetBundleLoadProfile.bytes" Crc="3466926186" ABName="loadconfig" AssetName="AssetBundleLoadProfile.bytes" />
+  <AssetBundle Path="Assets/GameData/Prefabs/UGUI/Panel/LoadingPanel.prefab" Crc="2273451330" ABName="loadingpanel" AssetName="LoadingPanel.prefab" />
+  <AssetBundle Path="Assets/GameData/Prefabs/UGUI/Panel/MenuPanel.prefab" Crc="3283179713" ABName="menupanel" AssetName="MenuPanel.prefab" />
+  <AssetBundle Path="Assets/GameData/Prefabs/Effects/Particle System.prefab" Crc="1217612516" ABName="particle system" AssetName="Particle System.prefab" />
+  <AssetBundle Path="Assets/GameData/Shaders/benghuai.shader" Crc="1145813025" ABName="shaders" AssetName="benghuai.shader" />
+  <AssetBundle Path="Assets/GameData/Shaders/Skybox.shader" Crc="1986987949" ABName="shaders" AssetName="Skybox.shader" />
+  <AssetBundle Path="Assets/GameData/Shaders/Water.shader" Crc="1357101244" ABName="shaders" AssetName="Water.shader" />
+  <AssetBundle Path="Assets/GameData/Shaders/Xray.shader" Crc="1043595403" ABName="shaders" AssetName="Xray.shader" />
+  <AssetBundle Path="Assets/GameData/Sounds/menusound.mp3" Crc="2729331572" ABName="sounds" AssetName="menusound.mp3" />
+  <AssetBundle Path="Assets/GameData/Sounds/senlin.mp3" Crc="3022988390" ABName="sounds" AssetName="senlin.mp3" />
+</AssetBundleLoadProfile>

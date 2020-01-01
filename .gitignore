@@ -9,6 +9,10 @@
 /[Bb]uilds/
 /[Ll]ogs/
 /[Mm]emoryCaptures/
+/UIElementsSchema/
+/Data/
+/AssetBundle/
+/Build/
 
 # Never ignore Asset meta data
 !/[Aa]ssets/**/*.meta
@@ -63,6 +67,8 @@ ExportedObj/
 
 # Unity3D generated file on crash reports
 sysinfo.txt
+tick.txt
+Reg.md
 
 # Builds
 *.apk

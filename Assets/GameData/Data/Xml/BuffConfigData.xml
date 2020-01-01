@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<BuffConfigData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Buff Id="101" Name="闪雷" IconPath="Oui/Liu/Lua/Thunder.buff" Duration="6.5" Description="雷属性持续伤害，体力逐渐流失" Type="闪雷">
+    <Script>测试测试测试</Script>
+    <Script>测试测试测试</Script>
+    <FX Id="201" Name="雷暴光环" Path="Oui/Liu/Lua/Thunder.fx" />
+    <FX Id="202" Name="雷暴光环" Path="Oui/Liu/Lua/Thunder.fx" />
+    <FX Id="203" Name="雷暴光环" Path="Oui/Liu/Lua/Thunder.fx" />
+  </Buff>
+  <DeBuff Id="102" Name="闪雷" IconPath="Oui/Liu/Lua/Thunder.buff" Duration="6.5" Description="雷属性持续伤害，体力逐渐流失" Type="闪雷">
+    <Script>测试测试测试</Script>
+    <FX Id="204" Name="雷暴光环" Path="Oui/Liu/Lua/Thunder.fx" />
+    <FX Id="205" Name="雷暴光环" Path="Oui/Liu/Lua/Thunder.fx" />
+    <FX Id="206" Name="雷暴光环" Path="Oui/Liu/Lua/Thunder.fx" />
+  </DeBuff>
+</BuffConfigData>

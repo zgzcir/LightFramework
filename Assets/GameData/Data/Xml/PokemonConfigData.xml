@@ -1,0 +1,8 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<PokemonConfigData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Pokemon Id="1001" Name="憨批龟龟" PrefabPath="Assets/GameData/Prefabs/Attack.prefab" Level="10" Rare="1" Height="8" />
+  <Pokemon Id="7" Name="杰尼龟" PrefabPath="Assets/GameData/Prefabs/Attack.prefab" Level="10" Rare="1" Height="8" />
+  <Pokemon Id="26" Name="雷丘" PrefabPath="Assets/GameData/Prefabs/Attack.prefab" Level="100" Rare="1" Height="10" />
+  <EvolvedPokemon Id="1001" Name="水箭龟龟" PrefabPath="Assets/GameData/Prefabs/Attack.prefab" Level="10" Rare="3" Height="8" />
+  <EvolvedPokemon Id="7" Name="杰尼龟" PrefabPath="Assets/GameData/Prefabs/Attack.prefab" Level="10" Rare="3" Height="8" />
+</PokemonConfigData>
