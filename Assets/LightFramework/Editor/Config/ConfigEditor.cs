@@ -820,10 +820,12 @@ namespace LightFramework.Editor.Config
             {
                 fileStream = File.OpenRead(path);
             }
+            #pragma warning disable 0168
             catch (Exception e)
             {
                 result = true;
             }
+            #pragma warning restore 0168
             finally
             {
                 fileStream?.Close();

@@ -16,7 +16,7 @@ namespace LightFramework.Resource
     
         //类对象池
         protected ClassObjectPool<ObjectItem> objectItemNativePool;
-    
+     
         /// <summary>
         /// 通过cloneobj guid索引 管理所有实例化过的object
         /// </summary>

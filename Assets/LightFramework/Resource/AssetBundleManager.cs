@@ -154,7 +154,9 @@ namespace LightFramework.Resource
             AssetItemDic.Add(crc, assetItem);
             return assetItem;
 #endif
+#pragma warning disable 0162
             return null;
+#pragma warning restore 0162
         }
     }
 

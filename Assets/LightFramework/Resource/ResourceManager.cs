@@ -309,6 +309,7 @@ namespace LightFramework.Resource
             CacheResource(path, ref item, crc, obj);
             return obj;
         }
+
         //给ObjectManager的接口
         public ObjectItem LoadPrimitiveAssetItem(string path, ObjectItem objectItem)
         {
@@ -348,7 +349,7 @@ namespace LightFramework.Resource
                     if (assetItem.AssetObject != null)
                         obj = assetItem.AssetObject as Object;
                     else
-                        obj = assetItem.assetBundle.LoadAsset<Object>(assetItem.assetName); 
+                        obj = assetItem.assetBundle.LoadAsset<Object>(assetItem.assetName);
                 }
             }
 
@@ -439,9 +440,12 @@ namespace LightFramework.Resource
             {
                 item.AssetObject = null;
             }
+
             return;
 #endif
+#pragma warning disable 0162
             AssetBundleManager.Instance.ReleaseAssetBundle(item);
+#pragma warning restore 0162
 
 //        item.AssetObject = null;
         }
@@ -650,6 +654,7 @@ namespace LightFramework.Resource
                         isHaveYield = true;
                     }
                 }
+
 //空转
                 if (!isHaveYield || DateTime.Now.Ticks - lastYieldTime > TimeOut.AsyncLoad)
                 {
