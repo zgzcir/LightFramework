@@ -1,0 +1,15 @@
+{
+    "name": "LightResource",
+    "references": [
+        "GUID:1817503b043fc6340a36bc36ae92708b"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

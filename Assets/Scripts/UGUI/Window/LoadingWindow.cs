@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using LightFramework.UI;
 using UnityEngine;
 
 public class LoadingWindow : Window
@@ -17,9 +18,9 @@ public class LoadingWindow : Window
     {
         base.OnUpdate();
         if (panel == null) return;
-        panel.Slider.value = MapManager.LoadingProgrees / 100.0f;
-        panel.LodingProgress.text = $"{MapManager.LoadingProgrees}%";
-        if (MapManager.LoadingProgrees>=100)
+        panel.Slider.value = SceneManager.LoadingProgrees / 100.0f;
+        panel.LodingProgress.text = $"{SceneManager.LoadingProgrees}%";
+        if (SceneManager.LoadingProgrees>=100)
         {
             OpenLoadingSceneUI();
         }
