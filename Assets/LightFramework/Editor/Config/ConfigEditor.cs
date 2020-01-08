@@ -345,7 +345,7 @@ namespace LightFramework.Editor.Config
 
         //todo ???? xml(数据保持)->reg(sheet)->sheetdata->excel
         //data->>sheetdata
-        private static void WriteSheetData(object data, Sheet sheet, Dictionary<string, Sheet> sheetDic,
+  private static void WriteSheetData(object data, Sheet sheet, Dictionary<string, Sheet> sheetDic,
             Dictionary<string, SheetData> sheetDataDic, string mainKey = null)
         {
             List<Variable> variables = sheet.Variables;
@@ -393,32 +393,43 @@ namespace LightFramework.Editor.Config
                 for (int j = 0; j < variables.Count; j++) //每条数据里的每个变量
                 {
                     var variable = variables[j];
-                    if (variable.Type == "list" && string.IsNullOrEmpty(variable.Split)) // todo->>>sheetname 外层表
+
+                    var type = variable.Type;
+
+                    if (type == "list" && string.IsNullOrEmpty(variable.Split)) // todo->>>sheetname 外层表
                     {
                         Sheet innerSheet = sheetDic[variable.ListSheetName];
                         WriteSheetData(sheetItem, innerSheet, sheetDic, sheetDataDic, mainKey);
                     }
-                    else if (string.Equals(variable.Type, "list"))
+                    else if (string.Equals(type, "list"))
                     {
                         string block = PackSheetBlock(sheetItem, variable, sheetDic);
                         rowData.Dic.Add(variable.Col, block);
                     }
-                    else if (variable.Type.Equals("stringblock") || variable.Type.Equals("floatblock") ||
-                             variable.Type.Equals("intblock") || variable.Type.Equals("boolblock"))
+                    else if (type.Equals("block"))
                     {
                         string block = PackBlock(sheetItem, variable);
                         rowData.Dic.Add(variable.Col, block);
                     }
                     else
                     {
-                        var value = sheetItem.GetMemberValue(variable.Name);
-                        if (value != null)
+                        IRegTypeParser regTypeParser = RegTypeParserManager.GetRegTypeParser(type);
+                        if (regTypeParser == null)
                         {
-                            rowData.Dic.Add(variable.Col, value.ToString());
+                            var value = sheetItem.GetMemberValue(variable.Name);
+                            if (value != null)
+                            {
+                                rowData.Dic.Add(variable.Col, value.ToString());
+                            }
+                            else
+                            {
+                                Debug.LogError($"Can not get member value : {variable.Name},check your reg.");
+                            }
                         }
                         else
                         {
-                            Debug.LogError($"Can not get member value : {variable.Name},check your reg.");
+                            string block = regTypeParser.PackData(sheetItem.GetMemberValue(variable.Name));
+                            rowData.Dic.Add(variable.Col, block);
                         }
                     }
                 }
@@ -640,7 +651,7 @@ namespace LightFramework.Editor.Config
             return null;
         }
 
-        private static void WriteInstanceData(object instance, Sheet sheet, SheetData sheetData,
+         private static void WriteInstanceData(object instance, Sheet sheet, SheetData sheetData,
             Dictionary<string, Sheet> sheetDic, Dictionary<string, SheetData> sheetDataDic, string mainKey)
         {
             var list = CreateList(GetTypeByClassName(sheet.ClassName));
@@ -672,28 +683,36 @@ namespace LightFramework.Editor.Config
                             UnpackSheetBlock(listItem, blockValue, sheetDic[variable.ListSheetName]);
                         }
                     }
-                    else if (variable.Type.Equals("stringblock") || variable.Type.Equals("floatblock") ||
-                             variable.Type.Equals("intblock") || variable.Type.Equals("boolblock"))
+                    else if (variable.Type.Equals("block") )
                     {
                         var blockValue = sheetData.Datas[i].Dic[variable.Name];
                         UnpackBlock(listItem, blockValue, variable);
                     }
                     else
                     {
-                        var value = sheetData.Datas[i].Dic[variable.Name];
-                        if (string.IsNullOrEmpty(value))
+                        IRegTypeParser regTypeParser = RegTypeParserManager.GetRegTypeParser(variable.Type);
+                        if (regTypeParser == null)
                         {
-                            if (!string.IsNullOrEmpty(variable.Default))
-                                value = variable.Default;
-                            else
+                            var value = sheetData.Datas[i].Dic[variable.Name];
+                            if (string.IsNullOrEmpty(value))
                             {
-                                Debug.LogError(
-                                    $"ReadInstanceData Error : {variable.Name} do not have a default value,please make sure the value is filled in excel or correct reg");
-                                continue;
+                                if (!string.IsNullOrEmpty(variable.Default))
+                                    value = variable.Default;
+                                else
+                                {
+                                    Debug.LogError(
+                                        $"ReadInstanceData Error : {variable.Name} do not have a default value,please make sure the value is filled in excel or correct reg");
+                                    continue;
+                                }
                             }
-                        }
 
-                        listItem.SetValue(variable.Name, value, variable.Type);
+                            listItem.SetValue(variable.Name, value, variable.Type);
+                        }
+                        else
+                        {
+                            var blockValue = sheetData.Datas[i].Dic[variable.Name];
+                            regTypeParser.UnPackData(listItem, blockValue, variable);
+                        }
                     }
                 }
 
@@ -702,6 +721,7 @@ namespace LightFramework.Editor.Config
 
             instance.SetValue(sheet.Parent.Name, list);
         }
+
 
         private static void UnpackBlock(object item, string block, Variable variable)
         {

@@ -1,0 +1,8 @@
+{
+  "parserList": [
+    {
+      "Type": "type",
+      "ParserName": "classname"
+    }
+  ]
+}
