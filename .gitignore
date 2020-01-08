@@ -77,3 +77,4 @@ Reg.md
 # Crashlytics generated file
 crashlytics-build.properties
 
+*.meta
