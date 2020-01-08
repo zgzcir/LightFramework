@@ -6,7 +6,7 @@ namespace LightFramework.Editor.Resource
 {
     public class OfflineDataEditor
     {
-        [MenuItem("Tools/离线数据/生成离线数据")]
+        [MenuItem("LightFramework/离线数据/生成离线数据")]
         public static void AssetCreateOfflineData()
         {
             GameObject[] gameObjects = Selection.gameObjects;
@@ -35,7 +35,7 @@ namespace LightFramework.Editor.Resource
             AssetDatabase.Refresh();
         }
 
-        [MenuItem("Tools/离线数据/生成UI离线数据")]
+        [MenuItem("LightFramework/离线数据/生成UI离线数据")]
         public static void AssetCreateUIOfflineData()
         {
             GameObject[] gameObjects = Selection.gameObjects;
@@ -49,7 +49,7 @@ namespace LightFramework.Editor.Resource
             EditorUtility.ClearProgressBar();
         }
 
-        [MenuItem("Tools/离线数据/生成所有UI Prefab离线数据")]
+        [MenuItem("LightFramework/离线数据/生成所有UI Prefab离线数据")]
         public static void CreateAllUIData()
         {
             string path = ProfileAccessor.GetFrameProfile().UIPrefabPath;
@@ -84,7 +84,7 @@ namespace LightFramework.Editor.Resource
             Resources.UnloadUnusedAssets();
             AssetDatabase.Refresh();
         }
-        [MenuItem("Tools/离线数据/生成Effect离线数据")]
+        [MenuItem("LightFramework/离线数据/生成Effect离线数据")]
         public static void AssetCreateEffectOfflineData()
         {
             GameObject[] gameObjects = Selection.gameObjects;
@@ -98,7 +98,7 @@ namespace LightFramework.Editor.Resource
             EditorUtility.ClearProgressBar();
         }
     
-        [MenuItem("Tools/离线数据/生成所有Effect Prefab离线数据")]
+        [MenuItem("LightFramework/离线数据/生成所有Effect Prefab离线数据")]
         public static void CreateAllEffectData()
         {
             string path = ProfileAccessor.GetFrameProfile().EffectPrefabPath;

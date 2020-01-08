@@ -20,8 +20,6 @@ namespace LightFramework.Editor.Config
     {
         #region base
 
-
-
         [MenuItem("Assets/.cs/生成xml")]
         public static void AssetsClassGenXml()
         {
@@ -65,7 +63,7 @@ namespace LightFramework.Editor.Config
                         return;
                     }
 
-                    SerializeOption.XmlSerialize(xmlPath, instance);
+                    SerializeOperation.XmlSerialize(xmlPath, instance);
                     Debug.Log($"{name} to xml done : {xmlPath}");
                 }
             }
@@ -89,15 +87,11 @@ namespace LightFramework.Editor.Config
             EditorUtility.ClearProgressBar();
         }
 
-        [MenuItem("Tools/配置/全体xml生成二进制")]
+        [MenuItem("LightFramework/配置/全体xml生成二进制")]
         public static void AssetsXmlGenBinaryUnite()
         {
             Object[] objs = Selection.objects;
             string xmlPath = GetFrameProfile().ConfigXmlLocalPath;
-            if (!File.Exists(xmlPath))
-            {
-                return;
-            }
 
             string[] filesPath = Directory.GetFiles(xmlPath, "*", SearchOption.AllDirectories);
 
@@ -131,9 +125,9 @@ namespace LightFramework.Editor.Config
                 if (type != null)
                 {
                     string xmlPath = GetFrameProfile().ConfigXmlFullPath(name);
-                    System.Object obj = SerializeOption.XmlDeserializeEditor(xmlPath, type);
+                    System.Object obj = SerializeOperation.XmlDeserializeEditor(xmlPath, type);
                     string binaryPath = GetFrameProfile().ConfigBinaryFullPath(name);
-                    SerializeOption.BinarySerialize(binaryPath, obj);
+                    SerializeOperation.BinarySerialize(binaryPath, obj);
                     Debug.Log($"Xml {name} to binary done : {binaryPath}");
                 }
             }
@@ -161,9 +155,7 @@ namespace LightFramework.Editor.Config
 
         #region genexcel
 
-
-
-        [MenuItem("Tools/配置/全体xml生成Excel")]
+        [MenuItem("LightFramework/配置/全体xml生成Excel")]
         public static void AssetsXmlGenExcelUnite()
         {
             Object[] objs = Selection.objects;
@@ -237,6 +229,7 @@ namespace LightFramework.Editor.Config
                         {
                             var range = worksheet.Cells[1, i + 1];
                             range.Value = sheetData.Names[i];
+                            range.AutoFitColumns();
                         }
 
                         for (int i = 0; i < sheetData.Datas.Count; i++) //->>>行
@@ -275,7 +268,7 @@ namespace LightFramework.Editor.Config
             if (type != null)
             {
                 string xmlPath = GetFrameProfile().ConfigXmlFullPath(name);
-                instance = SerializeOption.XmlDeserializeEditor(xmlPath, type);
+                instance = SerializeOperation.XmlDeserializeEditor(xmlPath, type);
             }
 
             return instance;
@@ -383,6 +376,12 @@ namespace LightFramework.Editor.Config
                 var rowData = new RowData();
                 if (!string.IsNullOrEmpty(parent.Foreign))
                 {
+                    if (string.IsNullOrEmpty(mainKey))
+                    {
+                        Debug.LogError($"表{parent.ListSheetName}需要一个主键，请检查您的reg文件是否指定了mainkey");
+                        return;
+                    }
+
                     rowData.Dic.Add(parent.Foreign, mainKey);
                 }
 
@@ -510,14 +509,11 @@ namespace LightFramework.Editor.Config
 
         #endregion
 
-
         #endregion
 
         #region genxml
 
-
-
-        [MenuItem("Tools/配置/全体Excel生成数据")]
+        [MenuItem("LightFramework/配置/全体Excel生成数据")]
         public static void AssetsExcelGenXmlUnite()
         {
             string[] files = Directory.GetFiles(RegLocalPath, "*", SearchOption.AllDirectories);
@@ -621,8 +617,8 @@ namespace LightFramework.Editor.Config
                     sheetDataDic, null);
             }
 
-            SerializeOption.XmlSerialize(GetFrameProfile().ConfigXmlFullPath(xmlName), instance);
-            SerializeOption.BinarySerialize(GetFrameProfile().ConfigBinaryFullPath(xmlName), instance);
+            SerializeOperation.XmlSerialize(GetFrameProfile().ConfigXmlFullPath(xmlName), instance);
+            SerializeOperation.BinarySerialize(GetFrameProfile().ConfigBinaryFullPath(xmlName), instance);
             Debug.Log($"{className} data  imported");
 
 
@@ -820,12 +816,12 @@ namespace LightFramework.Editor.Config
             {
                 fileStream = File.OpenRead(path);
             }
-            #pragma warning disable 0168
+#pragma warning disable 0168
             catch (Exception e)
             {
                 result = true;
             }
-            #pragma warning restore 0168
+#pragma warning restore 0168
             finally
             {
                 fileStream?.Close();
@@ -881,7 +877,7 @@ namespace LightFramework.Editor.Config
 
         #region test
 
-        [MenuItem("Tools/Test/测试读取reg")]
+        // [MenuItem("LightFramework/Test/测试读取reg")]
         public static void ReadReg()
         {
             XmlReader xmlReader = null;
@@ -927,7 +923,7 @@ namespace LightFramework.Editor.Config
             }
         }
 
-        [MenuItem("Tools/Test/测试写入excel")]
+        // [MenuItem("LightFramework/Test/测试写入excel")]
         public static void WriteExcel()
         {
             string path = Application.dataPath + "/../Data/Excel/C宝可梦.xlsx";
@@ -949,7 +945,7 @@ namespace LightFramework.Editor.Config
             }
         }
 
-        [MenuItem("Tools/Test/测试已有类反射")]
+        // [MenuItem("LightFramework/Test/测试已有类反射")]
         public static void TestObjectReflection()
         {
             TestInfo testInfo = new TestInfo()
@@ -986,7 +982,7 @@ namespace LightFramework.Editor.Config
             }
         }
 
-        [MenuItem("Tools/Test/测试已有数据反射")]
+        // [MenuItem("LightFramework/Test/测试已有数据反射")]
         public static void TestDataReflection()
         {
             object obj = CreateInstance("TestInfo");
@@ -1048,6 +1044,5 @@ namespace LightFramework.Editor.Config
         public string Content { get; set; }
     }
 
-
-#endregion
+    #endregion
 }

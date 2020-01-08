@@ -21,13 +21,13 @@ namespace LightFramework.Config
                 return ConfigDataDic[binaryPath] as T;
             }
             T data = null;
-            data = SerializeOption.BinaryDeserializeRuntime<T>(binaryPath);
+            data = SerializeOperation.BinaryDeserializeRuntime<T>(binaryPath);
 #if UNITY_EDITOR
             if (data == null)
             {
                 Debug.Log($"Temporary load from xml,Please ensure the binary file{binaryPath} is generated");
                 string xmlPath = binaryPath.Replace("Binary", "Xml").Replace(".bytes", "xml");
-                data = SerializeOption.XmlDeserializeEditor<T>(xmlPath);
+                data = SerializeOperation.XmlDeserializeEditor<T>(xmlPath);
             }
 #endif
 

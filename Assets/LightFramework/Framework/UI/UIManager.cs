@@ -127,7 +127,7 @@ namespace LightFramework.UI
                 }
                 else
                 {
-                    Debug.LogError($"找不到{name}窗口对应的脚本");
+                    Debug.LogError($"找不到{name}窗口对应的脚本,请确定已注册该窗口");
                     return null;
                 }
 

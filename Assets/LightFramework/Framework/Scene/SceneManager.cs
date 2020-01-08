@@ -5,12 +5,13 @@ using LightFramework.Base;
 using LightFramework.Resource;
 using LightFramework.UI;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.SceneManagement;
 
 public class SceneManager : Singleton<SceneManager>
 {
-    public Action SceneLoadingDoneCallBack;
-    public Action SceneLoadingEnterCallBack;
+    // public Action SceneLoadingDoneCallBack;
+    // public Action SceneLoadingEnterCallBack;
 
     public string CurrentMapName { get; set; }
     public static int LoadingProgrees { get; set; } = 0;
@@ -24,11 +25,11 @@ public class SceneManager : Singleton<SceneManager>
         this.mono = mono;
     }
 
-    public void LoadScene(string name)
+    public void LoadScene(string name, UnityAction callBack=null)
     {
         LoadingProgrees = 0;
         UIManager.Instance.PopUpWindow(UIDefinition.Loading, paramList: new object[] {name});
-        mono.StartCoroutine(LoadSceneAsyncCor(name));
+        mono.StartCoroutine(LoadSceneAsyncCor(name, callBack));
     }
 
     /// <summary>
@@ -41,12 +42,12 @@ public class SceneManager : Singleton<SceneManager>
 
 
 //todo 
-    IEnumerator LoadSceneAsyncCor(string name)
+    IEnumerator LoadSceneAsyncCor(string name, UnityAction callBack=null)
     {
-        SceneLoadingEnterCallBack?.Invoke();
         ClearCache();
         isSceneLoadingDone = false;
-        AsyncOperation unloadScene = UnityEngine.SceneManagement.SceneManager.LoadSceneAsync(SceneDefinition.Empty, LoadSceneMode.Single);
+        AsyncOperation unloadScene =
+            UnityEngine.SceneManagement.SceneManager.LoadSceneAsync(SceneDefinition.Empty, LoadSceneMode.Single);
         while (unloadScene != null && !unloadScene.isDone)
         {
             yield return new WaitForEndOfFrame();
@@ -55,10 +56,10 @@ public class SceneManager : Singleton<SceneManager>
         LoadingProgrees = 0;
         int targetProgress = 0;
         AsyncOperation asyncScene = UnityEngine.SceneManagement.SceneManager.LoadSceneAsync(name);
-        if(asyncScene != null && !asyncScene.isDone)
+        if (asyncScene != null && !asyncScene.isDone)
         {
             asyncScene.allowSceneActivation = false;
-            while (asyncScene.progress < 0.9f)  
+            while (asyncScene.progress < 0.9f)
             {
                 targetProgress = (int) asyncScene.progress * 100;
                 yield return new WaitForEndOfFrame();
@@ -80,9 +81,11 @@ public class SceneManager : Singleton<SceneManager>
             LoadingProgrees = 100;
             asyncScene.allowSceneActivation = true;
             isSceneLoadingDone = true;
-            SceneLoadingDoneCallBack?.Invoke();
+            callBack?.Invoke();
+            UIManager.Instance.CloseWindow(UIDefinition.Loading);
         }
     }
+
     private void ClearCache()
     {
         ObjectManager.Instance.ClearCache();

@@ -26,13 +26,14 @@ namespace LightFramework
 
         protected virtual void Start()
         {
-          
+            SceneManager.Instance.LoadScene(SceneDefinition.Menu,
+                () => { UIManager.Instance.PopUpWindow(UIDefinition.Menu); });
         }
 
         void RegisterUI()
         {
-            // UIManager.Instance.Register<MenuWindow>(UIDefinition.Menu);
-            // UIManager.Instance.Register<LoadingWindow>(UIDefinition.Loading);
+            UIManager.Instance.Register<MenuWindow>(UIDefinition.Menu);
+            UIManager.Instance.Register<LoadingWindow>(UIDefinition.Loading);
         }
 
         void LoadConfig()
@@ -41,9 +42,9 @@ namespace LightFramework
             // ConfigManager.Instance.LoadConfigData<PokemonConfigData>(CFG.TablePokemon);
         }
 
-        private void Update()
+        protected virtual void Update()
         {
-
+            UIManager.Instance.Update();
         }
 
         private void OnApplicationQuit()

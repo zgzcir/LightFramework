@@ -36,7 +36,7 @@ namespace LightFramework.Editor.Resource
             }
         }
 
-        [MenuItem("Tools/AssetBundle/打包")]
+        [MenuItem("LightFramework/AssetBundle/打包")]
         public static void Build()
         {
             ConfigEditor.AssetsXmlGenBinaryUnite();
@@ -48,6 +48,10 @@ namespace LightFramework.Editor.Resource
 
             AssetBundleBuildProfile assetBundleBuildProfile =
                 AssetDatabase.LoadAssetAtPath<AssetBundleBuildProfile>(GetFrameProfile().ABBuildProfilePath);
+            if (assetBundleBuildProfile == null)
+            {
+                Debug.LogError($"未找到打包AssetBundle的配置文件，请确保路径正确：{GetFrameProfile().ABBuildProfilePath}");
+            }
             assetBundleBuildProfile.AssetDirectories.ForEach(SetDirectory);
 
             SetDirectory(assetBundleBuildProfile.AssetBundleLoadProfileDirectory);

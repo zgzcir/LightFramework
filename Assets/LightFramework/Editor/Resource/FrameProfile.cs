@@ -137,11 +137,17 @@ namespace LightFramework.Editor.Resource
 
     public static class ProfileAccessor
     {
-        private const string frameProfilePath = "Assets/RLFrame/Editor/Resource/AssetBundleBuildProfile.asset";
+        private const string frameProfilePath = "Assets/LightFramework/Profile/FrameProfile.asset";
 
         public static FrameProfile GetFrameProfile()
         {
-            return AssetDatabase.LoadAssetAtPath<FrameProfile>(frameProfilePath);
+            var profile=AssetDatabase.LoadAssetAtPath<FrameProfile>(frameProfilePath);
+            if (profile == null)
+            {
+                Debug.LogError($"未找到框架配置文件,请确保路径正确:{frameProfilePath}");
+            }
+
+            return profile;
         }
     }
 

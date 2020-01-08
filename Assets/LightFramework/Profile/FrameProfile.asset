@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3eb894bb81a8e9944bf277787bf64d19, type: 3}
   m_Name: FrameProfile
   m_EditorClassIdentifier: 
-  ABBuildProfilePath: Assets/RLFrame.Editor/Editor/Resource/AssetBundleBuildProfile.asset
+  ABBuildProfilePath: Assets/LightFramework/Profile/AssetBundleBuildProfile.asset
   aBLoadXmlPath: Assets/DevelopmentReference/AssetBundleLoadConfig.xml
   aBLoadBytesPath: Assets/GameData/Data/AssetBundleData/AssetBundleLoadProfile.bytes
   bundleTargetPath: ../AssetBundle

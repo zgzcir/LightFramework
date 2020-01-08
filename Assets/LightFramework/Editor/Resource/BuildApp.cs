@@ -13,7 +13,7 @@ namespace LightFramework.Editor.Resource
         public static readonly string AppPathIOS = Application.dataPath + "/../Build/IOS/";
         public static readonly string AppPathWindows = Application.dataPath + "/../Build/Windows/";
 
-        [MenuItem("Tools/Build/Build")]
+        [MenuItem("LightFramework/Build/Build")]
         public static void Build()
         {
 

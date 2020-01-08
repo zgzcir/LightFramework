@@ -8,7 +8,7 @@ using Object = System.Object;
 
 namespace LightFramework.Config
 {
-    public class SerializeOption
+    public class SerializeOperation
     {
         #region Xml
 
@@ -107,7 +107,6 @@ namespace LightFramework.Config
         }
 
         #endregion
-
         #region bytes
 
         public static bool BinarySerialize(string savePath, object obj)

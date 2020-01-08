@@ -1,8 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using LightFramework.UI;
-using UnityEngine;
-
 public class LoadingWindow : Window
 {
     private LoadingPanel panel;
