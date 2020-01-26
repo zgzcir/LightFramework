@@ -9,7 +9,7 @@
 
 ![avatar](https://i.loli.ma/pic/5d618444587da4baa6736df8a1374a46.png)
 
-### 2，ab包配置方式：(主要分为两种配置方式)
+### 2，ab包配置方式：
   使用已有的AssetBundleBuildProfile配置文件或右键Create AssetBundleBuildProfile进行创建
 
 ![Snipaste_2020-01-10_14-35-18.png](https://i.loli.ma/pic/b545dd59ab0b74938beceb63aeee2188.png)
