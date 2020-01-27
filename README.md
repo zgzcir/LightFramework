@@ -126,9 +126,11 @@ delegate void OnAsyncFinish(string path, Object obj, params object[] paramList);
   
   调用这两个函数，在资源加载的时候有参数来确定某些资源或者Prefab跳场景是否清除，如果不清除，将常驻内存，方便快速加载。
   
-  #### 9）关于离线数据的使用
-  目前离线数据有UI离线数据及特效离线数据，主要用于实例化的gameobject从对象池取出时还原原本结构（当然，如果很复杂的结果还原难以做到，需要使用者自己根据情况还原，基本的还原类型都有，也可以去拓展UIOfflineData与EffectOfflineData或者继承OfflineData去写新的离线数据还原）
-  操作方法，选中Prefab右键生成对应的离线数据，此功能还可以拓展缓冲gameobject的任何组件，避免代码中经常出现getcompontent的操作。但是会占部分内存。
+  #### 9）对象池回收数据还原
+  在编辑器下缓存prefab的数据如Transform等组件用于在回收时进行还原，减少运行时的GetComponent等操作。
+   <br/> 可继承OfflineData进行类型扩展。
+  <br/>  操作方法：右键Prefab生成数据或在菜单中一键生成。
+  
   
   #### 10）数据配置
   此框架包含了数据配置功能，实现了类与xml与二进制与Excel表之间的互转，xml与Excel表之间的转换由一个如下的reg表定义：
